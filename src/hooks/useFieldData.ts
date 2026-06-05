@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export interface ImageData {
@@ -26,7 +26,7 @@ export const compressImage = (file: File): Promise<string> => {
       img.src = e.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1024;
+        const MAX_WIDTH = 800;
         let width = img.width;
         let height = img.height;
         if (width > MAX_WIDTH) {
@@ -37,7 +37,7 @@ export const compressImage = (file: File): Promise<string> => {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        resolve(canvas.toDataURL('image/webp', 0.6));
       };
     };
   });
@@ -52,30 +52,77 @@ export function useFieldData(customerCode: string) {
     setLoading(true);
     
     const docRef = doc(db, 'field_data', customerCode);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setData(docSnap.data() as CustomerFieldData);
-      } else {
-        setData({ meterNumber: '', coordinates: '', images: [] });
-      }
+    
+    const unsubDoc = onSnapshot(docRef, (docSnap) => {
+      setData(prev => {
+        if (docSnap.exists()) {
+          const d = docSnap.data();
+          const legacyImages = d.images || [];
+          return { ...prev, meterNumber: d.meterNumber || '', coordinates: d.coordinates || '', images: [...legacyImages, ...prev.images.filter(x => !legacyImages.find((y: any) => y.id === x.id))] };
+        } else {
+          return { ...prev, meterNumber: '', coordinates: '' };
+        }
+      });
       setLoading(false);
     }, (error) => {
       console.error("Error fetching field data", error);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubImages = onSnapshot(collection(db, 'field_data', customerCode, 'images'), (snapshot) => {
+      setData(prev => {
+        const subImages = snapshot.docs.map(d => d.data() as ImageData);
+        const combined = [...prev.images];
+        for (const img of subImages) {
+          const idx = combined.findIndex(x => x.id === img.id);
+          if (idx >= 0) combined[idx] = img;
+          else combined.push(img);
+        }
+        return { ...prev, images: combined };
+      });
+    }, (error) => {
+      console.error("Error fetching subcollection images", error);
+    });
+
+    return () => { unsubDoc(); unsubImages(); };
   }, [customerCode]);
 
   const saveData = async (newData: CustomerFieldData) => {
     setData(newData);
     try {
       const docRef = doc(db, 'field_data', customerCode);
-      await setDoc(docRef, newData);
+      await setDoc(docRef, { meterNumber: newData.meterNumber, coordinates: newData.coordinates }, { merge: true });
     } catch (error) {
       console.error("Error saving data to Firestore", error);
     }
   };
 
-  return { data, saveData, loading };
+  const addImage = async (img: ImageData) => {
+    try {
+      const imgDoc = doc(db, 'field_data', customerCode, 'images', img.id);
+      await setDoc(imgDoc, img);
+    } catch (error) {
+      console.error("Error saving image to subcollection", error);
+    }
+  };
+
+  const removeImage = async (id: string) => {
+    try {
+      // Optimistic URL removal for responsiveness
+      setData(prev => ({ ...prev, images: prev.images.filter(x => x.id !== id) }));
+      const imgDoc = doc(db, 'field_data', customerCode, 'images', id);
+      await deleteDoc(imgDoc);
+    } catch (e) {
+      console.error("Error deleting", e);
+    }
+    // Also remove from array if it was legacy
+    try {
+      if (data.images.find(x => x.id === id)) {
+         const docRef = doc(db, 'field_data', customerCode);
+         await setDoc(docRef, { images: data.images.filter(x => x.id !== id) }, { merge: true });
+      }
+    } catch (e) {}
+  };
+
+  return { data, saveData, loading, addImage, removeImage };
 }

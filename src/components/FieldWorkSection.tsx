@@ -4,22 +4,24 @@ import { useFieldData, compressImage } from '../hooks/useFieldData';
 import { twMerge } from 'tailwind-merge';
 
 export function FieldWorkSection({ customerCode }: { customerCode: string }) {
-  const { data, saveData, loading } = useFieldData(customerCode);
+  const { data, saveData, loading, addImage, removeImage } = useFieldData(customerCode);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<'general' | 'meter'>('general');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   if (loading) return <div className="animate-pulse h-32 bg-slate-100 rounded-xl mt-6"></div>;
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     
-    setIsGettingLocation(true);
+    setIsUploading(true);
     let lat: number | undefined;
     let lng: number | undefined;
     
     try {
       if (navigator.geolocation) {
+        setIsGettingLocation(true);
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
         });
@@ -28,35 +30,34 @@ export function FieldWorkSection({ customerCode }: { customerCode: string }) {
       }
     } catch (err) {
       console.warn("Could not get location", err);
+    } finally {
+      setIsGettingLocation(false);
     }
-    setIsGettingLocation(false);
 
-    const newImages = [...data.images];
     let latestCoordinates = data.coordinates;
     
     for (let i = 0; i < e.target.files.length; i++) {
       const file = e.target.files[i];
       const compressedUrl = await compressImage(file);
-      newImages.push({
+      const newImg = {
         id: Date.now().toString() + i,
         url: compressedUrl,
         lat,
         lng,
         timestamp: Date.now(),
         type: uploadType
-      });
+      };
+      
+      await addImage(newImg);
       
       // Use the first image's coordinates if no manual coordinates are set
       if (!latestCoordinates && lat && lng) {
         latestCoordinates = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        saveData({ ...data, coordinates: latestCoordinates });
       }
     }
     
-    saveData({ ...data, images: newImages, coordinates: latestCoordinates });
-  };
-
-  const removeImage = (id: string) => {
-    saveData({ ...data, images: data.images.filter(img => img.id !== id) });
+    setIsUploading(false);
   };
 
   const updateCoordinatesFromLocation = async () => {
@@ -132,16 +133,18 @@ export function FieldWorkSection({ customerCode }: { customerCode: string }) {
             onChange={handleCapture}
           />
           <button
+            disabled={isUploading}
             onClick={() => { setUploadType('general'); fileInputRef.current?.click(); }}
-            className="flex flex-1 items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl shadow-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+            className={twMerge("flex flex-1 items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl shadow-sm transition-colors", isUploading ? "opacity-50 cursor-not-allowed" : "hover:border-indigo-300 hover:text-indigo-600")}
           >
-            <Camera className="w-4 h-4" /> Thêm ảnh chung
+            <Camera className={twMerge("w-4 h-4", isUploading && "animate-pulse")} /> {isUploading ? "Đang xử lý..." : "Thêm ảnh chung"}
           </button>
           <button
+            disabled={isUploading}
             onClick={() => { setUploadType('meter'); fileInputRef.current?.click(); }}
-            className="flex flex-1 items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold py-2.5 px-4 rounded-xl shadow-sm hover:bg-indigo-100 transition-colors"
+            className={twMerge("flex flex-1 items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold py-2.5 px-4 rounded-xl shadow-sm transition-colors", isUploading ? "opacity-50 cursor-not-allowed" : "hover:bg-indigo-100")}
           >
-            <Tag className="w-4 h-4" /> Chụp ảnh công tơ
+            <Tag className={twMerge("w-4 h-4", isUploading && "animate-pulse")} /> {isUploading ? "Đang xử lý..." : "Chụp ảnh công tơ"}
           </button>
         </div>
 
