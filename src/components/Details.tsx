@@ -8,7 +8,7 @@ import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -27,6 +27,18 @@ export function Details({ customers, mode }: DetailsProps) {
       groups['Khách hàng 1 Pha'] = customers.filter(c => String(c.phases).includes('1'));
     } else if (mode === 'phase3') {
       groups['Khách hàng 3 Pha'] = customers.filter(c => String(c.phases).includes('3'));
+    } else if (mode === 'types') {
+      for (const customer of customers) {
+        const key = customer.typeCode || 'Không có mã chủng loại';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(customer);
+      }
+    } else if (mode === 'tiRatios') {
+      for (const customer of customers) {
+        const key = customer.tiRatio || 'Không có tỷ số TI';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(customer);
+      }
     } else if (mode === 'stations') {
       for (const customer of customers) {
         const key = customer.stationCode || 'Không có mã trạm';
@@ -83,7 +95,7 @@ export function Details({ customers, mode }: DetailsProps) {
       )}>
         <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode === 'phase1' || mode === 'phase3' ? 'Phân loại pha' : 'Danh mục Mã Sổ'}
+            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode === 'phase1' || mode === 'phase3' ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : 'Danh mục Mã Sổ'}
           </label>
         </div>
         <div className="flex-1 overflow-y-auto py-2">

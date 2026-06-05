@@ -1,17 +1,19 @@
 import { useMemo } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Book, Building2, AlertTriangle, Zap, Activity } from 'lucide-react';
+import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare } from 'lucide-react';
 import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
 
 interface OverviewProps {
   customers: Customer[];
-  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3') => void;
+  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios') => void;
 }
 
 export function Overview({ customers, onNavigate }: OverviewProps) {
   const stats = useMemo(() => {
     const uniqueBooks = new Set(customers.map(c => c.bookCode).filter(Boolean));
     const uniqueStations = new Set(customers.map(c => c.stationCode).filter(Boolean));
+    const uniqueTypes = new Set(customers.map(c => c.typeCode).filter(Boolean));
+    const uniqueTiRatios = new Set(customers.map(c => c.tiRatio).filter(Boolean));
     
     const overdueCount = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry)).length;
     const phase1Count = customers.filter(c => String(c.phases).includes('1')).length;
@@ -21,6 +23,8 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
       totalCustomers: customers.length,
       totalBooks: uniqueBooks.size,
       totalStations: uniqueStations.size,
+      totalTypes: uniqueTypes.size,
+      totalTiRatios: uniqueTiRatios.size,
       overdueCount,
       phase1Count,
       phase3Count,
@@ -72,6 +76,18 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
             title="Khách hàng 3 Pha"
             value={stats.phase3Count}
             onClick={() => onNavigate('phase3')}
+          />
+          <StatCard
+            icon={Box}
+            title="Chủng loại công tơ"
+            value={stats.totalTypes}
+            onClick={() => onNavigate('types')}
+          />
+          <StatCard
+            icon={GitCompare}
+            title="Tỷ số TI đấu"
+            value={stats.totalTiRatios}
+            onClick={() => onNavigate('tiRatios')}
           />
         </div>
       </div>
