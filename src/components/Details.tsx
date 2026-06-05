@@ -14,6 +14,7 @@ export function Details({ customers, mode }: DetailsProps) {
   const [selectedBookCode, setSelectedBookCode] = useState<string | null>(null);
   const [selectedCustomerCode, setSelectedCustomerCode] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [mobilePane, setMobilePane] = useState<'categories' | 'list' | 'detail'>('categories');
 
   const groupedCustomers = useMemo(() => {
     const groups: Record<string, Customer[]> = {};
@@ -37,15 +38,17 @@ export function Details({ customers, mode }: DetailsProps) {
 
   const bookCodes = Object.keys(groupedCustomers).sort();
 
-  // Auto-select first book and first customer
+  // Auto-select first book and first customer on desktop
   useEffect(() => {
-    if (bookCodes.length > 0 && !selectedBookCode) {
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    if (isDesktop && bookCodes.length > 0 && !selectedBookCode) {
       setSelectedBookCode(bookCodes[0]);
     }
   }, [bookCodes, selectedBookCode]);
 
   useEffect(() => {
-    if (selectedBookCode && groupedCustomers[selectedBookCode] && !selectedCustomerCode) {
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    if (isDesktop && selectedBookCode && groupedCustomers[selectedBookCode] && !selectedCustomerCode) {
       setSelectedCustomerCode(groupedCustomers[selectedBookCode][0]?.customerCode || null);
     }
   }, [selectedBookCode, groupedCustomers, selectedCustomerCode]);
@@ -65,10 +68,13 @@ export function Details({ customers, mode }: DetailsProps) {
   }, [activeBookCustomers, selectedCustomerCode]);
 
   return (
-    <div className="flex-1 flex overflow-hidden h-full">
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden h-full">
       {/* Sidebar: Mã Sổ Selection */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
-        <div className="p-4 border-b border-slate-100 bg-slate-50">
+      <aside className={twMerge(
+        "w-full md:w-64 bg-white border-r border-slate-200 flex-col flex-shrink-0 h-full",
+        mobilePane === 'categories' ? "flex" : "hidden md:flex"
+      )}>
+        <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : 'Danh mục Mã Sổ'}
           </label>
@@ -79,13 +85,14 @@ export function Details({ customers, mode }: DetailsProps) {
               key={code}
               onClick={() => {
                 setSelectedBookCode(code);
-                setSelectedCustomerCode(groupedCustomers[code][0]?.customerCode || null);
+                setSelectedCustomerCode(null);
                 setSearch('');
+                setMobilePane('list');
               }}
               className={twMerge(
-                "px-4 py-3 cursor-pointer flex justify-between items-center transition-colors",
+                "px-4 py-3 cursor-pointer flex justify-between items-center transition-colors border-b border-slate-50 md:border-none",
                 selectedBookCode === code 
-                   ? "bg-indigo-50 border-r-4 border-indigo-600" 
+                   ? "bg-indigo-50 md:border-r-4 border-indigo-600" 
                    : "hover:bg-slate-50 text-slate-600"
               )}
             >
@@ -93,7 +100,7 @@ export function Details({ customers, mode }: DetailsProps) {
                 {code}
               </span>
               <span className={twMerge(
-                "text-[10px] px-2 py-0.5 rounded-full",
+                "text-[10px] px-2 py-0.5 rounded-full shrink-0 ml-2",
                 selectedBookCode === code ? "bg-indigo-100 text-indigo-600 font-bold" : "bg-slate-100 text-slate-400 font-medium"
               )}>
                 {groupedCustomers[code].length} KH
@@ -104,15 +111,26 @@ export function Details({ customers, mode }: DetailsProps) {
       </aside>
 
       {/* Customer List Grid */}
-      <section className="w-96 border-r border-slate-200 flex flex-col bg-slate-50 flex-shrink-0">
-        <div className="p-4 flex items-center justify-between border-b border-slate-200 bg-white shadow-sm z-10">
-          <h2 className="text-sm font-bold text-slate-800 truncate pr-2">Danh sách: {selectedBookCode}</h2>
+      <section className={twMerge(
+        "w-full md:w-96 border-r border-slate-200 flex-col bg-slate-50 flex-shrink-0 h-full",
+        mobilePane === 'list' ? "flex" : "hidden md:flex"
+      )}>
+        <div className="p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between border-b border-slate-200 bg-white shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-2 max-w-full w-full sm:w-auto">
+            <button 
+              onClick={() => setMobilePane('categories')}
+              className="md:hidden p-1.5 -ml-1 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-md"
+            >
+              <ChevronRight className="w-5 h-5 rotate-180" />
+            </button>
+            <h2 className="text-sm font-bold text-slate-800 truncate pr-2 flex-1">Danh sách: {selectedBookCode}</h2>
+          </div>
           <input 
             type="text" 
             placeholder="Tìm kiếm KH..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="text-xs border border-slate-200 rounded-md px-2 py-1.5 w-40 outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 transition-shadow" 
+            className="text-xs border border-slate-200 rounded-md px-2 py-2 sm:py-1.5 w-full sm:w-40 outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 transition-shadow" 
           />
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -121,13 +139,16 @@ export function Details({ customers, mode }: DetailsProps) {
             return (
               <div 
                 key={customer.customerCode || customer.stt}
-                onClick={() => setSelectedCustomerCode(customer.customerCode)}
+                onClick={() => {
+                  setSelectedCustomerCode(customer.customerCode);
+                  setMobilePane('detail');
+                }}
                 className={twMerge(
                   "p-4 border-b border-slate-100 cursor-pointer transition-colors",
                   isSelected ? "bg-white ring-1 ring-inset ring-indigo-200" : "hover:bg-slate-100/50 bg-slate-50"
                 )}
               >
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start mb-1">
                   <span className={twMerge(
                     "text-[10px] font-mono font-bold",
                     isSelected ? "text-indigo-500" : "text-slate-400"
@@ -137,12 +158,12 @@ export function Details({ customers, mode }: DetailsProps) {
                   <span className="text-[10px] text-slate-400 font-medium">STT: {customer.stt || '-'}</span>
                 </div>
                 <h3 className={twMerge(
-                  "text-sm font-bold mt-1",
+                  "text-sm font-bold leading-snug",
                   isSelected ? "text-slate-900" : "text-slate-700"
                 )}>
                   {customer.customerName || 'Không có tên'}
                 </h3>
-                <p className="text-xs text-slate-400 truncate mt-0.5">{customer.address || 'Chưa có địa chỉ'}</p>
+                <p className="text-xs text-slate-400 truncate mt-1">{customer.address || 'Chưa có địa chỉ'}</p>
               </div>
             );
           })}
@@ -155,18 +176,28 @@ export function Details({ customers, mode }: DetailsProps) {
       </section>
 
       {/* Detail View Pane */}
-      <section className="flex-1 bg-white p-8 overflow-y-auto">
+      <section className={twMerge(
+        "flex-1 bg-white p-4 sm:p-8 overflow-y-auto h-full",
+        mobilePane === 'detail' ? "block" : "hidden md:block"
+      )}>
         {selectedCustomer ? (
           <div className="max-w-3xl mx-auto">
+            <button 
+              onClick={() => setMobilePane('list')}
+              className="md:hidden flex items-center font-bold text-xs text-indigo-600 mb-6 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+              Đi tới danh sách
+            </button>
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 font-bold text-xl uppercase border border-slate-200">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 font-bold text-xl uppercase border border-slate-200">
                 {selectedCustomer.customerName ? selectedCustomer.customerName.charAt(0) : 'KH'}
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900">{selectedCustomer.customerName || 'Không có tên'}</h2>
-                <p className="text-slate-500 flex items-center gap-2 mt-1 font-medium text-sm">
-                  <MapPin className="w-4 h-4 text-slate-400" />
-                  {selectedCustomer.address || 'Chưa có thông tin địa chỉ'}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{selectedCustomer.customerName || 'Không có tên'}</h2>
+                <p className="text-slate-500 flex items-start sm:items-center gap-1.5 mt-1 font-medium text-xs sm:text-sm">
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 mt-0.5 sm:mt-0 shrink-0" />
+                  <span className="truncate">{selectedCustomer.address || 'Chưa có thông tin địa chỉ'}</span>
                 </p>
               </div>
             </div>
