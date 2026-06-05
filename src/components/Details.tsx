@@ -2,12 +2,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { Customer } from '../types/customer';
 import { ChevronRight, FileSpreadsheet, MapPin, Phone, Zap, MonitorSmartphone, Share, User, Hash } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
 
 import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -20,6 +21,12 @@ export function Details({ customers, mode }: DetailsProps) {
     const groups: Record<string, Customer[]> = {};
     if (mode === 'all') {
       groups['Tất cả khách hàng'] = customers;
+    } else if (mode === 'overdue') {
+      groups['Sắp/Quá hạn kiểm định (≤30đ)'] = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry));
+    } else if (mode === 'phase1') {
+      groups['Khách hàng 1 Pha'] = customers.filter(c => String(c.phases).includes('1'));
+    } else if (mode === 'phase3') {
+      groups['Khách hàng 3 Pha'] = customers.filter(c => String(c.phases).includes('3'));
     } else if (mode === 'stations') {
       for (const customer of customers) {
         const key = customer.stationCode || 'Không có mã trạm';
@@ -76,7 +83,7 @@ export function Details({ customers, mode }: DetailsProps) {
       )}>
         <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : 'Danh mục Mã Sổ'}
+            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode === 'phase1' || mode === 'phase3' ? 'Phân loại pha' : 'Danh mục Mã Sổ'}
           </label>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
@@ -155,7 +162,7 @@ export function Details({ customers, mode }: DetailsProps) {
                   )}>
                     {customer.customerCode}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">STT: {customer.stt || '-'}</span>
+                  <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">ĐV: {customer.unitCode || '-'}</span>
                 </div>
                 <h3 className={twMerge(
                   "text-sm font-bold leading-snug",
@@ -207,48 +214,60 @@ export function Details({ customers, mode }: DetailsProps) {
                 <div>
                   <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thông số thiết bị</h4>
                   <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+                    <DetailRow label="Mã đơn vị" value={selectedCustomer.unitCode} />
+                    <DetailRow label="Mã thiết bị" value={selectedCustomer.deviceCode} mono />
                     <DetailRow label="Số thiết bị" value={selectedCustomer.deviceNumber} mono />
                     <DetailRow label="Mã loại" value={selectedCustomer.typeCode} />
-                    <DetailRow label="Dòng điện" value={selectedCustomer.current} />
-                    <DetailRow label="Điện áp" value={selectedCustomer.voltage} />
+                    <DetailRow label="Dòng điện / Điện áp" value={[selectedCustomer.current, selectedCustomer.voltage].filter(Boolean).join(" / ")} />
                     <DetailRow label="Số pha" value={selectedCustomer.phases} />
+                    <DetailRow label="Hệ số nhân" value={selectedCustomer.multiplier} />
+                    <DetailRow label="Kiểm định (Ngày - Hạn)" value={[selectedCustomer.inspectionDate, selectedCustomer.inspectionExpiry].filter(Boolean).join(" - ")} />
+                    <DetailRow label="Tỷ số TI đấu" value={selectedCustomer.tiRatio} />
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vị trí hệ thống</h4>
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vị trí & Thông tin lưới</h4>
                   <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
-                    <DetailRow label="Mã khu vực" value={selectedCustomer.areaCode} />
                     <DetailRow label="Mã trạm" value={selectedCustomer.stationCode} />
-                    <DetailRow label="Số TT trong trạm" value={selectedCustomer.sequenceInStation} />
+                    <DetailRow label="Số trụ" value={selectedCustomer.poleNumber} />
+                    <DetailRow label="Khu vực" value={[selectedCustomer.areaCode, selectedCustomer.areaNumber].filter(Boolean).join(" - ")} />
+                    <DetailRow label="Mã điểm đo" value={selectedCustomer.measurementPointCode} />
+                    <DetailRow label="Loại (TT/GT)" value={selectedCustomer.directIndirectType} />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Liên hệ & Khác</h4>
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Liên hệ & Quản lý</h4>
                   <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
                     <DetailRow label="Số điện thoại" value={selectedCustomer.phoneNumber} />
                     <DetailRow label="Mã khách hàng" value={selectedCustomer.customerCode} mono />
+                    <DetailRow label="Mã sổ ghi điện" value={selectedCustomer.bookCode} />
+                    <DetailRow label="Ngày treo tháo" value={selectedCustomer.installRemoveDate} />
+                    <DetailRow label="Chuỗi giá" value={selectedCustomer.priceString} />
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Địa chỉ</h4>
+                  <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+                    <DetailRow label="Địa chỉ KH" value={selectedCustomer.customerAddress} />
+                    <div className="pt-2 border-t border-slate-200 mt-2">
+                      <DetailRow label="Nơi SD điện" value={selectedCustomer.electricityUsageAddress} />
+                    </div>
                   </div>
                 </div>
 
                 {selectedCustomer.notes && (
                   <div>
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ghi chú tờ rơi</h4>
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ghi chú</h4>
                     <div className="mt-2 bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-yellow-800 text-xs italic leading-relaxed">
                       "{selectedCustomer.notes}"
                     </div>
                   </div>
                 )}
-
-                <div className="pt-4">
-                  <button className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
-                    <Share className="w-4 h-4" />
-                    Gửi báo cáo / Xuất dữ liệu
-                  </button>
-                </div>
               </div>
             </div>
 

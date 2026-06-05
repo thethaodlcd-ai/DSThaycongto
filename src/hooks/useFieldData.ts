@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { get, set } from 'idb-keyval';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export interface ImageData {
   id: string;
@@ -49,18 +50,31 @@ export function useFieldData(customerCode: string) {
   useEffect(() => {
     if (!customerCode) return;
     setLoading(true);
-    get(`field_data_${customerCode}`).then(val => {
-      if (val) setData(val);
-      else setData({ meterNumber: '', coordinates: '', images: [] });
+    
+    const docRef = doc(db, 'field_data', customerCode);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setData(docSnap.data() as CustomerFieldData);
+      } else {
+        setData({ meterNumber: '', coordinates: '', images: [] });
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching field data", error);
       setLoading(false);
     });
+
+    return () => unsubscribe();
   }, [customerCode]);
 
   const saveData = async (newData: CustomerFieldData) => {
-    // Optimistic UI update
     setData(newData);
-    // Write to persistent IndexedDB
-    await set(`field_data_${customerCode}`, newData);
+    try {
+      const docRef = doc(db, 'field_data', customerCode);
+      await setDoc(docRef, newData);
+    } catch (error) {
+      console.error("Error saving data to Firestore", error);
+    }
   };
 
   return { data, saveData, loading };

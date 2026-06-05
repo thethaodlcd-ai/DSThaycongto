@@ -32,7 +32,7 @@ export function useGoogleSheets(accessToken: string | null) {
         const firstSheetTitle = metaData.sheets[0].properties.title;
 
         const dataRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetTitle)}!A2:O`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetTitle)}!A2:Z`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -65,7 +65,9 @@ export function useGoogleSheets(accessToken: string | null) {
             const data = results.data as string[][];
             if (data.length > 0) {
               // Check if first row is header by looking at first cell
-              const startIndex = data[0][0].toLowerCase().includes('stt') ? 1 : 0;
+              const firstCell = String(data[0][0]).toLowerCase();
+              const isHeader = firstCell.includes('mã đơn vị') || firstCell.includes('stt') || firstCell.includes('ma don') || firstCell === 'mã đơn vị';
+              const startIndex = isHeader ? 1 : 0;
               const parsed = data.slice(startIndex).map(row => parseCustomerData(row));
               setCustomers(parsed);
               setLoading(false);

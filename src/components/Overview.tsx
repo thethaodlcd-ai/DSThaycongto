@@ -1,20 +1,29 @@
 import { useMemo } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Book, Building2, Zap } from 'lucide-react';
+import { Users, Book, Building2, AlertTriangle, Zap, Activity } from 'lucide-react';
+import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
 
 interface OverviewProps {
   customers: Customer[];
+  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3') => void;
 }
 
-export function Overview({ customers, onNavigate }: OverviewProps & { onNavigate: (mode: 'all'|'books'|'stations') => void }) {
+export function Overview({ customers, onNavigate }: OverviewProps) {
   const stats = useMemo(() => {
     const uniqueBooks = new Set(customers.map(c => c.bookCode).filter(Boolean));
     const uniqueStations = new Set(customers.map(c => c.stationCode).filter(Boolean));
     
+    const overdueCount = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry)).length;
+    const phase1Count = customers.filter(c => String(c.phases).includes('1')).length;
+    const phase3Count = customers.filter(c => String(c.phases).includes('3')).length;
+
     return {
       totalCustomers: customers.length,
       totalBooks: uniqueBooks.size,
       totalStations: uniqueStations.size,
+      overdueCount,
+      phase1Count,
+      phase3Count,
     };
   }, [customers]);
 
@@ -23,10 +32,10 @@ export function Overview({ customers, onNavigate }: OverviewProps & { onNavigate
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900">Tổng quan hệ thống</h2>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Thông tin thống kê từ danh sách Google Sheet.</p>
+          <p className="text-sm text-slate-500 mt-1 font-medium">Thông tin thống kê từ danh sách cập nhật.</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             icon={Users}
             title="Tổng số khách hàng"
@@ -45,23 +54,42 @@ export function Overview({ customers, onNavigate }: OverviewProps & { onNavigate
             value={stats.totalStations}
             onClick={() => onNavigate('stations')}
           />
+          <StatCard
+            icon={AlertTriangle}
+            title="Hết hạn KĐ / Quá hạn (≤30đ)"
+            value={stats.overdueCount}
+            onClick={() => onNavigate('overdue')}
+            highlight
+          />
+          <StatCard
+            icon={Zap}
+            title="Khách hàng 1 Pha"
+            value={stats.phase1Count}
+            onClick={() => onNavigate('phase1')}
+          />
+          <StatCard
+            icon={Activity}
+            title="Khách hàng 3 Pha"
+            value={stats.phase3Count}
+            onClick={() => onNavigate('phase3')}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, title, value, onClick }: { icon: any, title: string, value: number, onClick: () => void }) {
+function StatCard({ icon: Icon, title, value, onClick, highlight = false }: { icon: any, title: string, value: number, onClick: () => void, highlight?: boolean }) {
   return (
     <div 
       onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex items-center p-6 cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all group"
+      className={`bg-white rounded-2xl border ${highlight ? 'border-red-200 hover:border-red-400' : 'border-slate-100 hover:border-indigo-300'} shadow-sm overflow-hidden flex items-center p-6 cursor-pointer hover:shadow-md transition-all group`}
     >
-      <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 mr-4">
-        <Icon className="w-6 h-6 text-indigo-500" />
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${highlight ? 'bg-red-50 border border-red-100 text-red-500' : 'bg-slate-50 border border-slate-100 text-indigo-500'}`}>
+        <Icon className="w-6 h-6" />
       </div>
       <div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+        <p className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-red-400' : 'text-slate-400'}`}>{title}</p>
         <h3 className="text-2xl font-black text-slate-900 mt-0.5">{value}</h3>
       </div>
     </div>
