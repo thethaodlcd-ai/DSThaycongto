@@ -14,6 +14,7 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'details'>('overview');
+  const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all'>('books');
   const [authError, setAuthError] = useState<string | null>(null);
 
   const { customers, loading, error, fetchCustomers } = useGoogleSheets(accessToken);
@@ -217,9 +218,15 @@ export default function App() {
         ) : (
           <div className="flex-1 flex overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
             {activeTab === 'overview' ? (
-              <Overview customers={customers} />
+              <Overview 
+                customers={customers}
+                onNavigate={(mode) => {
+                  setDetailsMode(mode);
+                  setActiveTab('details');
+                }}
+              />
             ) : (
-              <Details customers={customers} />
+              <Details customers={customers} mode={detailsMode} />
             )}
           </div>
         )}

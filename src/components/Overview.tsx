@@ -6,7 +6,7 @@ interface OverviewProps {
   customers: Customer[];
 }
 
-export function Overview({ customers }: OverviewProps) {
+export function Overview({ customers, onNavigate }: OverviewProps & { onNavigate: (mode: 'all'|'books'|'stations') => void }) {
   const stats = useMemo(() => {
     const uniqueBooks = new Set(customers.map(c => c.bookCode).filter(Boolean));
     const uniqueStations = new Set(customers.map(c => c.stationCode).filter(Boolean));
@@ -31,16 +31,19 @@ export function Overview({ customers }: OverviewProps) {
             icon={Users}
             title="Tổng số khách hàng"
             value={stats.totalCustomers}
+            onClick={() => onNavigate('all')}
           />
           <StatCard
             icon={Book}
             title="Số lượng mã sổ"
             value={stats.totalBooks}
+            onClick={() => onNavigate('books')}
           />
           <StatCard
             icon={Building2}
             title="Số lượng trạm"
             value={stats.totalStations}
+            onClick={() => onNavigate('stations')}
           />
         </div>
       </div>
@@ -48,9 +51,12 @@ export function Overview({ customers }: OverviewProps) {
   );
 }
 
-function StatCard({ icon: Icon, title, value }: { icon: any, title: string, value: number }) {
+function StatCard({ icon: Icon, title, value, onClick }: { icon: any, title: string, value: number, onClick: () => void }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex items-center p-6">
+    <div 
+      onClick={onClick}
+      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex items-center p-6 cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all group"
+    >
       <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 mr-4">
         <Icon className="w-6 h-6 text-indigo-500" />
       </div>

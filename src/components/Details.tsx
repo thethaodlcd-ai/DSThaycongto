@@ -3,26 +3,37 @@ import { Customer } from '../types/customer';
 import { ChevronRight, FileSpreadsheet, MapPin, Phone, Zap, MonitorSmartphone, Share, User, Hash } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 
+import { FieldWorkSection } from './FieldWorkSection';
+
 interface DetailsProps {
   customers: Customer[];
+  mode: 'books' | 'stations' | 'all';
 }
 
-export function Details({ customers }: DetailsProps) {
+export function Details({ customers, mode }: DetailsProps) {
   const [selectedBookCode, setSelectedBookCode] = useState<string | null>(null);
   const [selectedCustomerCode, setSelectedCustomerCode] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   const groupedCustomers = useMemo(() => {
     const groups: Record<string, Customer[]> = {};
-    for (const customer of customers) {
-      if (!customer.bookCode) continue;
-      if (!groups[customer.bookCode]) {
-        groups[customer.bookCode] = [];
+    if (mode === 'all') {
+      groups['Tất cả khách hàng'] = customers;
+    } else if (mode === 'stations') {
+      for (const customer of customers) {
+        const key = customer.stationCode || 'Không có mã trạm';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(customer);
       }
-      groups[customer.bookCode].push(customer);
+    } else {
+      for (const customer of customers) {
+        const key = customer.bookCode || 'Không có mã sổ';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(customer);
+      }
     }
     return groups;
-  }, [customers]);
+  }, [customers, mode]);
 
   const bookCodes = Object.keys(groupedCustomers).sort();
 
@@ -58,7 +69,9 @@ export function Details({ customers }: DetailsProps) {
       {/* Sidebar: Mã Sổ Selection */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
         <div className="p-4 border-b border-slate-100 bg-slate-50">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Danh Mục Mã Sổ</label>
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : 'Danh mục Mã Sổ'}
+          </label>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
           {bookCodes.map(code => (
@@ -93,7 +106,7 @@ export function Details({ customers }: DetailsProps) {
       {/* Customer List Grid */}
       <section className="w-96 border-r border-slate-200 flex flex-col bg-slate-50 flex-shrink-0">
         <div className="p-4 flex items-center justify-between border-b border-slate-200 bg-white shadow-sm z-10">
-          <h2 className="text-sm font-bold text-slate-800">Danh sách {selectedBookCode}</h2>
+          <h2 className="text-sm font-bold text-slate-800 truncate pr-2">Danh sách: {selectedBookCode}</h2>
           <input 
             type="text" 
             placeholder="Tìm kiếm KH..."
@@ -144,7 +157,7 @@ export function Details({ customers }: DetailsProps) {
       {/* Detail View Pane */}
       <section className="flex-1 bg-white p-8 overflow-y-auto">
         {selectedCustomer ? (
-          <div className="max-w-2xl">
+          <div className="max-w-3xl mx-auto">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 font-bold text-xl uppercase border border-slate-200">
                 {selectedCustomer.customerName ? selectedCustomer.customerName.charAt(0) : 'KH'}
@@ -202,11 +215,14 @@ export function Details({ customers }: DetailsProps) {
                 <div className="pt-4">
                   <button className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
                     <Share className="w-4 h-4" />
-                    Báo cáo sai phạm số liệu
+                    Gửi báo cáo / Xuất dữ liệu
                   </button>
                 </div>
               </div>
             </div>
+
+            {/* Phần Hiện Trường Data */}
+            <FieldWorkSection customerCode={selectedCustomer.customerCode} />
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
