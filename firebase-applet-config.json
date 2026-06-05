@@ -1,0 +1,8 @@
+{
+  "apiKey": "DUMMY_API_KEY",
+  "authDomain": "DUMMY_AUTH_DOMAIN",
+  "projectId": "DUMMY_PROJECT_ID",
+  "storageBucket": "DUMMY_STORAGE_BUCKET",
+  "messagingSenderId": "DUMMY_MESSAGING_SENDER_ID",
+  "appId": "DUMMY_APP_ID"
+}
