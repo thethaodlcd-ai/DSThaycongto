@@ -32,7 +32,7 @@ export function useGoogleSheets(accessToken: string | null) {
         const firstSheetTitle = metaData.sheets[0].properties.title;
 
         const dataRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetTitle)}!A2:Z`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetTitle)}!A2:AA`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,

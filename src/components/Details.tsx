@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { Customer } from '../types/customer';
-import { ChevronRight, FileSpreadsheet, MapPin, Phone, Zap, MonitorSmartphone, Share, User, Hash } from 'lucide-react';
+import { ChevronRight, FileSpreadsheet, MapPin, Phone, Zap, MonitorSmartphone, Share, User, Hash, Download } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
 
@@ -8,7 +9,7 @@ import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -39,6 +40,16 @@ export function Details({ customers, mode }: DetailsProps) {
         if (!groups[key]) groups[key] = [];
         groups[key].push(customer);
       }
+    } else if (mode === 'notesAndSolar') {
+      groups['Khách hàng NLMT'] = customers.filter(c => c.notes?.trim() || c.solarPower?.trim());
+    } else if (mode === 'phase1Direct') {
+      groups['1 Pha Trực Tiếp'] = customers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('trực tiếp'));
+    } else if (mode === 'phase1Indirect') {
+      groups['1 Pha Gián Tiếp'] = customers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('gián tiếp'));
+    } else if (mode === 'phase3Direct') {
+      groups['3 Pha Trực Tiếp'] = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp'));
+    } else if (mode === 'phase3Indirect') {
+      groups['3 Pha Gián Tiếp'] = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp'));
     } else if (mode === 'stations') {
       for (const customer of customers) {
         const key = customer.stationCode || 'Không có mã trạm';
@@ -86,6 +97,48 @@ export function Details({ customers, mode }: DetailsProps) {
     return activeBookCustomers.find(c => c.customerCode === selectedCustomerCode) || null;
   }, [activeBookCustomers, selectedCustomerCode]);
 
+  const handleExportExcel = () => {
+    if (!activeBookCustomers || activeBookCustomers.length === 0) return;
+
+    const exportData = activeBookCustomers.map(c => ({
+      "Mã đơn vị": c.unitCode,
+      "Mã thiết bị": c.deviceCode,
+      "số thiết bị": c.deviceNumber,
+      "Mã chủng loại": c.typeCode,
+      "Dòng điện": c.current,
+      "điện áp": c.voltage,
+      "số pha": c.phases,
+      "Ngày kiểm định": c.inspectionDate,
+      "Hạn kiểm định": c.inspectionExpiry,
+      "Mã điển đo": c.measurementPointCode,
+      "Mã khách hàng": c.customerCode,
+      "Hệ số nhân": c.multiplier,
+      "Ngày treo tháo": c.installRemoveDate,
+      "Mã khu vực": c.areaCode,
+      "Số khu vực": c.areaNumber,
+      "Tên khách hàng": c.customerName,
+      "Địa chỉ sử dụng điện": c.electricityUsageAddress,
+      "Địa chỉ sử khách hàng": c.customerAddress,
+      "Số trụ": c.poleNumber,
+      "Mã sổ ghi điện": c.bookCode,
+      "Mã trạm": c.stationCode,
+      "Số điiện thoại": c.phoneNumber,
+      "Chuỗi giá": c.priceString,
+      "Loại trực tiếp, gián giếp": c.directIndirectType,
+      "Tỷ số TI đấu": c.tiRatio,
+      "Ghi chú": c.notes,
+      "Công suất lắp NLMT (kWp)": c.solarPower,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "KhachHang");
+    
+    // Generate valid filename string
+    const fileNameSafeLabel = String(selectedBookCode || 'DanhSach').replace(/[\/\\?%*:|"<>]/g, '-');
+    XLSX.writeFile(workbook, `Danh_Sach_${fileNameSafeLabel}.xlsx`);
+  };
+
   return (
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden h-full">
       {/* Sidebar: Mã Sổ Selection */}
@@ -95,7 +148,7 @@ export function Details({ customers, mode }: DetailsProps) {
       )}>
         <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode === 'phase1' || mode === 'phase3' ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : 'Danh mục Mã Sổ'}
+            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode.includes('phase') ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : mode === 'notesAndSolar' ? 'Khách hàng NLMT' : 'Danh mục Mã Sổ'}
           </label>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
@@ -118,12 +171,19 @@ export function Details({ customers, mode }: DetailsProps) {
               <span className={selectedBookCode === code ? "font-bold text-indigo-700" : "font-medium text-sm"}>
                 {code}
               </span>
-              <span className={twMerge(
-                "text-[10px] px-2 py-0.5 rounded-full shrink-0 ml-2",
-                selectedBookCode === code ? "bg-indigo-100 text-indigo-600 font-bold" : "bg-slate-100 text-slate-400 font-medium"
-              )}>
-                {groupedCustomers[code].length} KH
-              </span>
+              <div className="flex flex-col items-end shrink-0 ml-2">
+                <span className={twMerge(
+                  "text-[10px] px-2 py-0.5 rounded-full",
+                  selectedBookCode === code ? "bg-indigo-100 text-indigo-600 font-bold" : "bg-slate-100 text-slate-400 font-medium"
+                )}>
+                  {groupedCustomers[code].length} KH
+                </span>
+                {mode === 'notesAndSolar' && (
+                  <span className={twMerge("text-[9px] font-medium mt-1 uppercase", selectedBookCode === code ? "text-indigo-500" : "text-slate-400")}>
+                    {groupedCustomers[code].reduce((sum, c) => sum + (isNaN(parseFloat(c.solarPower?.replace(',', '.') || '0')) ? 0 : parseFloat(c.solarPower?.replace(',', '.') || '0')), 0).toLocaleString('vi-VN')} kWp
+                  </span>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -142,7 +202,21 @@ export function Details({ customers, mode }: DetailsProps) {
             >
               <ChevronRight className="w-5 h-5 rotate-180" />
             </button>
-            <h2 className="text-sm font-bold text-slate-800 truncate pr-2 flex-1">Danh sách: {selectedBookCode}</h2>
+            <h2 className="text-sm flex-1 font-bold text-slate-800 truncate pr-2" title={String(selectedBookCode)}>
+              {selectedBookCode}
+              {mode === 'notesAndSolar' && activeBookCustomers && (
+                <span className="text-xs text-indigo-600 font-bold ml-2 bg-indigo-50 px-2 py-0.5 rounded-full inline-block">
+                  Tổng: {activeBookCustomers.reduce((sum, c) => sum + (isNaN(parseFloat(c.solarPower?.replace(',', '.') || '0')) ? 0 : parseFloat(c.solarPower?.replace(',', '.') || '0')), 0).toLocaleString('vi-VN')} kWp
+                </span>
+              )}
+            </h2>
+            <button 
+              onClick={handleExportExcel} 
+              className="p-1.5 text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+              title="Xuất danh sách ra file Excel"
+            >
+              <Download className="w-4 h-4" />
+            </button>
           </div>
           <input 
             type="text" 
@@ -272,11 +346,12 @@ export function Details({ customers, mode }: DetailsProps) {
                   </div>
                 </div>
 
-                {selectedCustomer.notes && (
+                {(selectedCustomer.notes || selectedCustomer.solarPower) && (
                   <div>
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ghi chú</h4>
-                    <div className="mt-2 bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-yellow-800 text-xs italic leading-relaxed">
-                      "{selectedCustomer.notes}"
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ghi chú & NLMT</h4>
+                    <div className="mt-2 bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-yellow-800 text-xs italic leading-relaxed space-y-2">
+                      {selectedCustomer.notes && <p><strong>Ghi chú:</strong> {selectedCustomer.notes}</p>}
+                      {selectedCustomer.solarPower && <p><strong>Công suất lắp NLMT (kWp):</strong> {selectedCustomer.solarPower}</p>}
                     </div>
                   </div>
                 )}

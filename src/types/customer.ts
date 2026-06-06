@@ -25,6 +25,7 @@ export interface Customer {
   directIndirectType: string; // Loại trực tiếp, gián giếp
   tiRatio: string; // Tỷ số TI đấu
   notes: string; // Ghi chú
+  solarPower: string; // Công suất lắp NLMT (kWp)
   
   // Aliases for compatibility
   address?: string;
@@ -59,6 +60,7 @@ export function parseCustomerData(row: string[]): Customer {
     directIndirectType: row[23] || '',
     tiRatio: row[24] || '',
     notes: row[25] || '',
+    solarPower: row[26] || '',
 
     // Computed aliases
     address: row[16] || row[17] || '',

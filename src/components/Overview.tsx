@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare } from 'lucide-react';
+import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare, FileText, Settings2 } from 'lucide-react';
 import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
 
 interface OverviewProps {
   customers: Customer[];
-  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios') => void;
+  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect') => void;
 }
 
 export function Overview({ customers, onNavigate }: OverviewProps) {
@@ -15,9 +15,26 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
     const uniqueTypes = new Set(customers.map(c => c.typeCode).filter(Boolean));
     const uniqueTiRatios = new Set(customers.map(c => c.tiRatio).filter(Boolean));
     
+    // Thống kê quá hạn thay / có ghi chú, NLMT
+    const notesAndSolarCustomers = customers.filter(c => c.notes?.trim() || c.solarPower?.trim());
+    const notesAndSolarCount = notesAndSolarCustomers.length;
+    const totalSolarPower = notesAndSolarCustomers.reduce((sum, c) => {
+      const power = parseFloat(c.solarPower?.replace(',', '.') || '0');
+      return sum + (isNaN(power) ? 0 : power);
+    }, 0);
+
     const overdueCount = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry)).length;
+    
+    // Pha cơ bản
     const phase1Count = customers.filter(c => String(c.phases).includes('1')).length;
     const phase3Count = customers.filter(c => String(c.phases).includes('3')).length;
+
+    // Phân loại chi tiết pha & trực tiếp/gián tiếp
+    const phase1Direct = customers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
+    const phase1Indirect = customers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
+    
+    const phase3Direct = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
+    const phase3Indirect = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
 
     return {
       totalCustomers: customers.length,
@@ -25,9 +42,15 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
       totalStations: uniqueStations.size,
       totalTypes: uniqueTypes.size,
       totalTiRatios: uniqueTiRatios.size,
+      notesAndSolarCount,
+      totalSolarPower,
       overdueCount,
       phase1Count,
       phase3Count,
+      phase1Direct,
+      phase1Indirect,
+      phase3Direct,
+      phase3Indirect,
     };
   }, [customers]);
 
@@ -89,13 +112,45 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
             value={stats.totalTiRatios}
             onClick={() => onNavigate('tiRatios')}
           />
+          <StatCard
+            icon={FileText}
+            title="Khách hàng NLMT"
+            value={stats.notesAndSolarCount}
+            subtitle={`Tổng công suất: ${stats.totalSolarPower.toLocaleString('vi-VN')} kWp`}
+            onClick={() => onNavigate('notesAndSolar')}
+            highlight
+          />
+          <StatCard
+            icon={Zap}
+            title="1 Pha Trực Tiếp"
+            value={stats.phase1Direct}
+            onClick={() => onNavigate('phase1Direct')}
+          />
+          <StatCard
+            icon={Settings2}
+            title="1 Pha Gián Tiếp"
+            value={stats.phase1Indirect}
+            onClick={() => onNavigate('phase1Indirect')}
+          />
+          <StatCard
+            icon={Activity}
+            title="3 Pha Trực Tiếp"
+            value={stats.phase3Direct}
+            onClick={() => onNavigate('phase3Direct')}
+          />
+          <StatCard
+            icon={Settings2}
+            title="3 Pha Gián Tiếp"
+            value={stats.phase3Indirect}
+            onClick={() => onNavigate('phase3Indirect')}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, title, value, onClick, highlight = false }: { icon: any, title: string, value: number, onClick: () => void, highlight?: boolean }) {
+function StatCard({ icon: Icon, title, value, onClick, highlight = false, subtitle }: { icon: any, title: string, value: number, onClick: () => void, highlight?: boolean, subtitle?: string }) {
   return (
     <div 
       onClick={onClick}
@@ -107,6 +162,7 @@ function StatCard({ icon: Icon, title, value, onClick, highlight = false }: { ic
       <div>
         <p className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-red-400' : 'text-slate-400'}`}>{title}</p>
         <h3 className="text-2xl font-black text-slate-900 mt-0.5">{value}</h3>
+        {subtitle && <p className="text-xs text-indigo-600 font-medium mt-1">{subtitle}</p>}
       </div>
     </div>
   );
