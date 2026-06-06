@@ -9,7 +9,7 @@ import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -50,6 +50,14 @@ export function Details({ customers, mode }: DetailsProps) {
       groups['3 Pha Trực Tiếp'] = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp'));
     } else if (mode === 'phase3Indirect') {
       groups['3 Pha Gián Tiếp'] = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp'));
+    } else if (mode === 'excludeSpecificPrices') {
+      groups['KH Không Thuộc Nhóm Đổi Giá'] = customers.filter(c => {
+        const p = String(c.priceString).replace(/\s+/g, '').toUpperCase();
+        return p !== "BT:100%*KDDV-A;CD:100%*KDDV-A;TD:100%*KDDV-A" && 
+               p !== "BT:100%*SXBT-A;CD:100%*SXBT-A;TD:100%*SXBT-A" && 
+               p !== "BT:100%*3007-KDDV-A;CD:100%*5174-KDDV-A;TD:100%*1830-KDDV-A" &&
+               p !== "BT:100%*1896-SXBT-A;CD:100%*3474-SXBT-A;TD:100%*1241-SXBT-A";
+      });
     } else if (mode === 'stations') {
       for (const customer of customers) {
         const key = customer.stationCode || 'Không có mã trạm';
@@ -83,7 +91,7 @@ export function Details({ customers, mode }: DetailsProps) {
     }
   }, [selectedBookCode, groupedCustomers, selectedCustomerCode]);
 
-  const activeBookCustomers = selectedBookCode ? groupedCustomers[selectedBookCode] : [];
+  const activeBookCustomers = selectedBookCode ? (groupedCustomers[selectedBookCode] || []) : [];
   
   const filteredCustomers = useMemo(() => {
     if (!search.trim()) return activeBookCustomers;
@@ -148,7 +156,7 @@ export function Details({ customers, mode }: DetailsProps) {
       )}>
         <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode.includes('phase') ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : mode === 'notesAndSolar' ? 'Khách hàng NLMT' : 'Danh mục Mã Sổ'}
+            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode.includes('phase') ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : mode === 'notesAndSolar' ? 'Khách hàng NLMT' : mode === 'excludeSpecificPrices' ? 'Lọc chuỗi giá' : 'Danh mục Mã Sổ'}
           </label>
         </div>
         <div className="flex-1 overflow-y-auto py-2">

@@ -4,6 +4,7 @@ import { initAuth, googleSignIn, logout } from './lib/firebase';
 import { useGoogleSheets } from './hooks/useGoogleSheets';
 import { Overview } from './components/Overview';
 import { Details } from './components/Details';
+import { PeriodicList } from './components/PeriodicList';
 import { LayoutDashboard, List, LogOut, DownloadCloud, Unlock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,11 +14,11 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'details'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic'>('overview');
   const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect'>('books');
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const { customers, loading, error, fetchCustomers } = useGoogleSheets(accessToken);
+  const { customers, loading, error, fetchCustomers, periodicCodes } = useGoogleSheets(accessToken);
 
   useEffect(() => {
     // Note: this hook might fail if the dummy firebase config throws error during init Auth.
@@ -197,6 +198,17 @@ export default function App() {
           >
             Chi Tiết KH
           </button>
+          <button
+            onClick={() => setActiveTab('periodic')}
+            className={twMerge(
+              'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              activeTab === 'periodic'
+                ? 'font-bold bg-white text-indigo-600 shadow-sm'
+                : 'font-medium text-slate-600 hover:bg-white/50'
+            )}
+          >
+            Danh Sách Thay Định Kỳ
+          </button>
         </nav>
       </header>
 
@@ -231,8 +243,10 @@ export default function App() {
                   setActiveTab('details');
                 }}
               />
-            ) : (
+            ) : activeTab === 'details' ? (
               <Details customers={customers} mode={detailsMode} />
+            ) : (
+              <PeriodicList customers={customers} periodicCodes={periodicCodes} />
             )}
           </div>
         )}

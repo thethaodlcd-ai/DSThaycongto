@@ -8,6 +8,7 @@ export function useGoogleSheets(accessToken: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [periodicCodes, setPeriodicCodes] = useState<string[]>([]);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -16,7 +17,7 @@ export function useGoogleSheets(accessToken: string | null) {
       if (accessToken) {
         // Authenticated Google Sheets API v4
         const metaRes = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets(properties(title))`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets(properties(title,sheetId))`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -52,10 +53,38 @@ export function useGoogleSheets(accessToken: string | null) {
         } else {
           setCustomers([]);
         }
+
+        // Fetch periodic replacements
+        const periodicSheet = metaData.sheets?.find((s: any) => s.properties.sheetId === 1140784872);
+        if (periodicSheet) {
+          const periodicRes = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(periodicSheet.properties.title)}!A2:A`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (periodicRes.ok) {
+            const periodicData = await periodicRes.json();
+            if (periodicData.values && Array.isArray(periodicData.values)) {
+              setPeriodicCodes(periodicData.values.map((row: any[]) => row[0]).filter(Boolean));
+            }
+          }
+        }
       } else {
-        // Fallback: Try to fetch as Public CSV (Requires sheet to be "Anyone with the link can view")
+        // Fallback: Try to fetch as Public CSV
         const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
-        
+        const periodicCsvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=1140784872`;
+
+        Papa.parse(periodicCsvUrl, {
+          download: true,
+          header: false,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const data = results.data as string[][];
+            if (data.length > 0) {
+              setPeriodicCodes(data.map(row => row[0]).filter(Boolean));
+            }
+          }
+        });
+
         Papa.parse(csvUrl, {
           download: true,
           header: false,
@@ -96,6 +125,7 @@ export function useGoogleSheets(accessToken: string | null) {
     customers,
     loading,
     error,
-    fetchCustomers
+    fetchCustomers,
+    periodicCodes
   };
 }
