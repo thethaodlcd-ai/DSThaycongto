@@ -5,6 +5,7 @@ import { useGoogleSheets } from './hooks/useGoogleSheets';
 import { Overview } from './components/Overview';
 import { Details } from './components/Details';
 import { PeriodicList } from './components/PeriodicList';
+import { PricingList } from './components/PricingList';
 import { LayoutDashboard, List, LogOut, DownloadCloud, Unlock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -14,7 +15,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic' | 'pricing'>('overview');
   const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect'>('books');
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -209,6 +210,17 @@ export default function App() {
           >
             Danh Sách Thay Định Kỳ
           </button>
+          <button
+            onClick={() => setActiveTab('pricing')}
+            className={twMerge(
+              'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              activeTab === 'pricing'
+                ? 'font-bold bg-white text-indigo-600 shadow-sm'
+                : 'font-medium text-slate-600 hover:bg-white/50'
+            )}
+          >
+            Danh Sách Thay Thời Gian Cho Biểu Giá
+          </button>
         </nav>
       </header>
 
@@ -245,8 +257,10 @@ export default function App() {
               />
             ) : activeTab === 'details' ? (
               <Details customers={customers} mode={detailsMode} />
-            ) : (
+            ) : activeTab === 'periodic' ? (
               <PeriodicList customers={customers} periodicCodes={periodicCodes} />
+            ) : (
+              <PricingList customers={customers} />
             )}
           </div>
         )}
