@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -15,6 +15,8 @@ export interface CustomerFieldData {
   meterNumber: string;
   coordinates: string;
   images: ImageData[];
+  constructionStatus?: 'Chờ thay' | 'Đã thay' | 'Tạm hoãn';
+  meterReplacementDate?: string;
 }
 
 export const compressImage = (file: File): Promise<string> => {
@@ -58,9 +60,9 @@ export function useFieldData(customerCode: string) {
         if (docSnap.exists()) {
           const d = docSnap.data();
           const legacyImages = d.images || [];
-          return { ...prev, meterNumber: d.meterNumber || '', coordinates: d.coordinates || '', images: [...legacyImages, ...prev.images.filter(x => !legacyImages.find((y: any) => y.id === x.id))] };
+          return { ...prev, meterNumber: d.meterNumber || '', coordinates: d.coordinates || '', constructionStatus: d.constructionStatus, meterReplacementDate: d.meterReplacementDate, images: [...legacyImages, ...prev.images.filter(x => !legacyImages.find((y: any) => y.id === x.id))] };
         } else {
-          return { ...prev, meterNumber: '', coordinates: '' };
+          return { ...prev, meterNumber: '', coordinates: '', constructionStatus: undefined, meterReplacementDate: undefined };
         }
       });
       setLoading(false);
@@ -87,15 +89,27 @@ export function useFieldData(customerCode: string) {
     return () => { unsubDoc(); unsubImages(); };
   }, [customerCode]);
 
-  const saveData = async (newData: CustomerFieldData) => {
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const saveData = useCallback((newData: CustomerFieldData) => {
     setData(newData);
-    try {
-      const docRef = doc(db, 'field_data', customerCode);
-      await setDoc(docRef, { meterNumber: newData.meterNumber, coordinates: newData.coordinates }, { merge: true });
-    } catch (error) {
-      console.error("Error saving data to Firestore", error);
-    }
-  };
+    
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const docRef = doc(db, 'field_data', customerCode);
+        await setDoc(docRef, { 
+          meterNumber: newData.meterNumber, 
+          coordinates: newData.coordinates,
+          constructionStatus: newData.constructionStatus || null,
+          meterReplacementDate: newData.meterReplacementDate || null
+        }, { merge: true });
+      } catch (error) {
+        console.error("Error saving data to Firestore", error);
+      }
+    }, 600);
+  }, [customerCode]);
 
   const addImage = async (img: ImageData) => {
     try {

@@ -119,6 +119,36 @@ export function FieldWorkSection({ customerCode }: { customerCode: string }) {
               className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-mono font-bold"
             />
           </div>
+          
+          {/* Trạng thái thi công */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+              Cập nhật trạng thái thi công
+            </label>
+            <select
+              value={data.constructionStatus || ''}
+              onChange={(e) => saveData({ ...data, constructionStatus: e.target.value as any })}
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              <option value="">-- Chọn trạng thái --</option>
+              <option value="Chờ thay">Chờ thay</option>
+              <option value="Đã thay">Đã thay</option>
+              <option value="Tạm hoãn">Tạm hoãn</option>
+            </select>
+          </div>
+
+          {/* Ngày thay công tơ */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+              Ngày thay công tơ
+            </label>
+            <input
+              type="date"
+              value={data.meterReplacementDate || ''}
+              onChange={(e) => saveData({ ...data, meterReplacementDate: e.target.value })}
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white leading-[1.35]"
+            />
+          </div>
         </div>
 
         {/* Actions */}
