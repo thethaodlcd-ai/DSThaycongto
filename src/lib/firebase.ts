@@ -5,7 +5,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 
 enableIndexedDbPersistence(db).catch((err) => {
   console.warn("Offline persistence error: ", err.code);

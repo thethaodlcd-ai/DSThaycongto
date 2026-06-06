@@ -46,14 +46,16 @@ export const compressImage = (file: File): Promise<string> => {
 };
 
 export function useFieldData(customerCode: string) {
+  const safeCustomerCode = customerCode ? customerCode.replace(/\//g, '_').trim() : '';
+
   const [data, setData] = useState<CustomerFieldData>({ meterNumber: '', coordinates: '', images: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!customerCode) return;
+    if (!safeCustomerCode) return;
     setLoading(true);
     
-    const docRef = doc(db, 'field_data', customerCode);
+    const docRef = doc(db, 'field_data', safeCustomerCode);
     
     const unsubDoc = onSnapshot(docRef, (docSnap) => {
       setData(prev => {
@@ -71,7 +73,7 @@ export function useFieldData(customerCode: string) {
       setLoading(false);
     });
 
-    const unsubImages = onSnapshot(collection(db, 'field_data', customerCode, 'images'), (snapshot) => {
+    const unsubImages = onSnapshot(collection(db, 'field_data', safeCustomerCode, 'images'), (snapshot) => {
       setData(prev => {
         const subImages = snapshot.docs.map(d => d.data() as ImageData);
         const combined = [...prev.images];
@@ -87,18 +89,19 @@ export function useFieldData(customerCode: string) {
     });
 
     return () => { unsubDoc(); unsubImages(); };
-  }, [customerCode]);
+  }, [safeCustomerCode]);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const saveData = useCallback((newData: CustomerFieldData) => {
+    if (!safeCustomerCode) return;
     setData(newData);
     
     if (debounceRef.current) clearTimeout(debounceRef.current);
     
     debounceRef.current = setTimeout(async () => {
       try {
-        const docRef = doc(db, 'field_data', customerCode);
+        const docRef = doc(db, 'field_data', safeCustomerCode);
         await setDoc(docRef, { 
           meterNumber: newData.meterNumber, 
           coordinates: newData.coordinates,
@@ -109,11 +112,12 @@ export function useFieldData(customerCode: string) {
         console.error("Error saving data to Firestore", error);
       }
     }, 600);
-  }, [customerCode]);
+  }, [safeCustomerCode]);
 
   const addImage = async (img: ImageData) => {
+    if (!safeCustomerCode) return;
     try {
-      const imgDoc = doc(db, 'field_data', customerCode, 'images', img.id);
+      const imgDoc = doc(db, 'field_data', safeCustomerCode, 'images', img.id);
       await setDoc(imgDoc, img);
     } catch (error) {
       console.error("Error saving image to subcollection", error);
@@ -121,10 +125,11 @@ export function useFieldData(customerCode: string) {
   };
 
   const removeImage = async (id: string) => {
+    if (!safeCustomerCode) return;
     try {
       // Optimistic URL removal for responsiveness
       setData(prev => ({ ...prev, images: prev.images.filter(x => x.id !== id) }));
-      const imgDoc = doc(db, 'field_data', customerCode, 'images', id);
+      const imgDoc = doc(db, 'field_data', safeCustomerCode, 'images', id);
       await deleteDoc(imgDoc);
     } catch (e) {
       console.error("Error deleting", e);
@@ -132,7 +137,7 @@ export function useFieldData(customerCode: string) {
     // Also remove from array if it was legacy
     try {
       if (data.images.find(x => x.id === id)) {
-         const docRef = doc(db, 'field_data', customerCode);
+         const docRef = doc(db, 'field_data', safeCustomerCode);
          await setDoc(docRef, { images: data.images.filter(x => x.id !== id) }, { merge: true });
       }
     } catch (e) {}
