@@ -176,11 +176,11 @@ export default function App() {
         </div>
 
         {/* Bottom Row / Tabs */}
-        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-full sm:w-auto shrink-0">
+        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-full sm:w-auto overflow-x-auto scrollbar-hide shrink-0 max-w-full">
           <button
             onClick={() => setActiveTab('overview')}
             className={twMerge(
-              'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              'shrink-0 flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
               activeTab === 'overview'
                 ? 'font-bold bg-white text-indigo-600 shadow-sm'
                 : 'font-medium text-slate-600 hover:bg-white/50'
@@ -191,7 +191,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('details')}
             className={twMerge(
-              'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              'shrink-0 flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
               activeTab === 'details'
                 ? 'font-bold bg-white text-indigo-600 shadow-sm'
                 : 'font-medium text-slate-600 hover:bg-white/50'
@@ -202,7 +202,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('periodic')}
             className={twMerge(
-              'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              'shrink-0 flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
               activeTab === 'periodic'
                 ? 'font-bold bg-white text-indigo-600 shadow-sm'
                 : 'font-medium text-slate-600 hover:bg-white/50'
@@ -213,7 +213,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('pricing')}
             className={twMerge(
-              'flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              'shrink-0 flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
               activeTab === 'pricing'
                 ? 'font-bold bg-white text-indigo-600 shadow-sm'
                 : 'font-medium text-slate-600 hover:bg-white/50'
