@@ -26,6 +26,7 @@ export interface Customer {
   tiRatio: string; // Tỷ số TI đấu
   notes: string; // Ghi chú
   solarPower: string; // Công suất lắp NLMT (kWp)
+  isReplaced?: boolean; // Đã thay
   
   // Aliases for compatibility
   address?: string;

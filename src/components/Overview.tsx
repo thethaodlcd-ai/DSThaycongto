@@ -85,8 +85,9 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
           />
           <StatCard
             icon={AlertTriangle}
-            title="Hết hạn KĐ / Quá hạn (≤30đ)"
+            title="QUÁ HẠN KIỂN ĐINH (%)"
             value={stats.overdueCount}
+            subtitle={`Chiếm ${((stats.overdueCount / (stats.periodic2026Count || 1)) * 100).toFixed(1)}% so với Tổng Thay ĐK 2026`}
             onClick={() => onNavigate('overdue')}
             highlight
           />
@@ -159,7 +160,7 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
   );
 }
 
-function StatCard({ icon: Icon, title, value, onClick, highlight = false, subtitle }: { icon: any, title: string, value: number, onClick: () => void, highlight?: boolean, subtitle?: string }) {
+function StatCard({ icon: Icon, title, value, onClick, highlight = false, subtitle }: { icon: any, title: string, value: number | string, onClick: () => void, highlight?: boolean, subtitle?: string }) {
   return (
     <div 
       onClick={onClick}
@@ -171,7 +172,7 @@ function StatCard({ icon: Icon, title, value, onClick, highlight = false, subtit
       <div>
         <p className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-red-400' : 'text-slate-400'}`}>{title}</p>
         <h3 className="text-2xl font-black text-slate-900 mt-0.5">{value}</h3>
-        {subtitle && <p className="text-xs text-indigo-600 font-medium mt-1">{subtitle}</p>}
+        {subtitle && <p className={`text-xs font-medium mt-1 ${highlight ? 'text-red-500' : 'text-indigo-600'}`}>{subtitle}</p>}
       </div>
     </div>
   );
