@@ -3,13 +3,13 @@ import * as XLSX from 'xlsx';
 import { Customer } from '../types/customer';
 import { ChevronRight, FileSpreadsheet, MapPin, Phone, Zap, MonitorSmartphone, Share, User, Hash, Download } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
-import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
+import { isExpiringSoonOrOverdue, isTargetYear } from '../utils/dateHelpers';
 
 import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -24,6 +24,8 @@ export function Details({ customers, mode }: DetailsProps) {
       groups['Tất cả khách hàng'] = customers;
     } else if (mode === 'overdue') {
       groups['Sắp/Quá hạn kiểm định (≤30đ)'] = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry));
+    } else if (mode === 'periodic2026') {
+      groups['Thay định kỳ 2026'] = customers.filter(c => isTargetYear(c.inspectionExpiry, 2026));
     } else if (mode === 'phase1') {
       groups['Khách hàng 1 Pha'] = customers.filter(c => String(c.phases).includes('1'));
     } else if (mode === 'phase3') {

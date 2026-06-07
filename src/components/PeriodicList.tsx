@@ -3,17 +3,16 @@ import { Customer } from '../types/customer';
 import { Users, Box, GitCompare, Activity, Settings2, Zap, FilterX } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { Details } from './Details';
+import { isTargetYear } from '../utils/dateHelpers';
 
 export type PeriodicMode = 'all' | 'types' | 'tiRatios' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices';
 
-export function PeriodicList({ customers, periodicCodes }: { customers: Customer[], periodicCodes: string[] }) {
+export function PeriodicList({ customers }: { customers: Customer[] }) {
   const [viewMode, setViewMode] = useState<PeriodicMode>('all');
 
   const periodicCustomers = useMemo(() => {
-    // Normalize codes to match easily
-    const normalizedCodes = new Set(periodicCodes.map(code => code.toString().trim().toUpperCase()));
-    return customers.filter(c => normalizedCodes.has(String(c.customerCode).trim().toUpperCase()));
-  }, [customers, periodicCodes]);
+    return customers.filter(c => isTargetYear(c.inspectionExpiry, 2026));
+  }, [customers]);
 
   const stats = useMemo(() => {
     const totalCustomers = periodicCustomers.length;

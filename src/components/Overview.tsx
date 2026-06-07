@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare, FileText, Settings2 } from 'lucide-react';
-import { isExpiringSoonOrOverdue } from '../utils/dateHelpers';
+import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare, FileText, Settings2, CalendarClock } from 'lucide-react';
+import { isExpiringSoonOrOverdue, isTargetYear } from '../utils/dateHelpers';
 
 interface OverviewProps {
   customers: Customer[];
-  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect') => void;
+  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'periodic2026') => void;
 }
 
 export function Overview({ customers, onNavigate }: OverviewProps) {
@@ -24,6 +24,7 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
     }, 0);
 
     const overdueCount = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry)).length;
+    const periodic2026Count = customers.filter(c => isTargetYear(c.inspectionExpiry, 2026)).length;
     
     // Pha cơ bản
     const phase1Count = customers.filter(c => String(c.phases).includes('1')).length;
@@ -45,6 +46,7 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
       notesAndSolarCount,
       totalSolarPower,
       overdueCount,
+      periodic2026Count,
       phase1Count,
       phase3Count,
       phase1Direct,
@@ -86,6 +88,13 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
             title="Hết hạn KĐ / Quá hạn (≤30đ)"
             value={stats.overdueCount}
             onClick={() => onNavigate('overdue')}
+            highlight
+          />
+          <StatCard
+            icon={CalendarClock}
+            title="Thay định kỳ 2026"
+            value={stats.periodic2026Count}
+            onClick={() => onNavigate('periodic2026')}
             highlight
           />
           <StatCard

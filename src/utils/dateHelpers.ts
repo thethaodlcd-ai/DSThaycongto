@@ -28,6 +28,13 @@ export function parseVietnameseDate(dateString: string): Date | null {
   return null;
 }
 
+export function isTargetYear(dateString: string, targetYear: number): boolean {
+  if (!dateString) return false;
+  const date = parseVietnameseDate(dateString);
+  if (!date) return false;
+  return date.getFullYear() === targetYear;
+}
+
 export function isExpiringSoonOrOverdue(dateString: string): boolean {
   if (!dateString) return false;
   const date = parseVietnameseDate(dateString);

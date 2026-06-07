@@ -16,10 +16,10 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic' | 'pricing'>('overview');
-  const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect'>('books');
+  const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'periodic2026'>('books');
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const { customers, loading, error, fetchCustomers, periodicCodes } = useGoogleSheets(accessToken);
+  const { customers, loading, error, fetchCustomers } = useGoogleSheets(accessToken);
 
   useEffect(() => {
     // Note: this hook might fail if the dummy firebase config throws error during init Auth.
@@ -258,7 +258,7 @@ export default function App() {
             ) : activeTab === 'details' ? (
               <Details customers={customers} mode={detailsMode} />
             ) : activeTab === 'periodic' ? (
-              <PeriodicList customers={customers} periodicCodes={periodicCodes} />
+              <PeriodicList customers={customers} />
             ) : (
               <PricingList customers={customers} />
             )}
