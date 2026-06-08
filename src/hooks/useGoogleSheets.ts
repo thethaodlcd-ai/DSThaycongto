@@ -61,19 +61,39 @@ export function useGoogleSheets(accessToken: string | null) {
             if (data2Res.ok) {
               const rawData2 = await data2Res.json();
               if (rawData2.values && Array.isArray(rawData2.values)) {
-                const secondSheetExpiryMap = new Map<string, string>();
+                const secondSheetMap = new Map<string, Customer>();
                 rawData2.values.forEach((r: any[]) => {
-                  const custCode = String(r[10] || '').trim();
-                  const expiry = String(r[8] || '').trim();
-                  if (custCode) {
-                    secondSheetExpiryMap.set(custCode, expiry);
+                  const cust = parseCustomerData(r);
+                  if (cust.customerCode) {
+                    secondSheetMap.set(cust.customerCode, cust);
                   }
                 });
                 
-                parsed = parsed.map(c => ({
-                  ...c,
-                  isReplaced: !!c.customerCode && secondSheetExpiryMap.has(c.customerCode) && secondSheetExpiryMap.get(c.customerCode) !== String(c.inspectionExpiry).trim()
-                }));
+                parsed = parsed.map(c => {
+                  let isReplaced = false;
+                  let changes: Record<string, { old: string, new: string }> = {};
+
+                  if (c.customerCode && secondSheetMap.has(c.customerCode)) {
+                    const c2 = secondSheetMap.get(c.customerCode)!;
+                    isReplaced = String(c2.inspectionExpiry).trim() !== String(c.inspectionExpiry).trim();
+
+                    // Compare fields
+                    const fieldsToCompare: (keyof Customer)[] = ['deviceCode', 'deviceNumber', 'typeCode', 'current', 'voltage', 'phases', 'inspectionDate', 'inspectionExpiry', 'measurementPointCode', 'multiplier', 'tiRatio'];
+                    fieldsToCompare.forEach(key => {
+                      const val1 = String(c[key] || '').trim();
+                      const val2 = String(c2[key] || '').trim();
+                      if (val1 !== val2) {
+                        changes[key] = { old: val2, new: val1 }; // Assuming c2 is baseline (older), c is current
+                      }
+                    });
+                  }
+
+                  return {
+                    ...c,
+                    isReplaced,
+                    changes
+                  };
+                });
               }
             }
           } catch (e) {
@@ -109,7 +129,7 @@ export function useGoogleSheets(accessToken: string | null) {
             }
           });
 
-          let secondSheetExpiryMap = new Map<string, string>();
+          let secondSheetMap = new Map<string, Customer>();
           Papa.parse(text2, {
             header: false,
             skipEmptyLines: true,
@@ -120,16 +140,32 @@ export function useGoogleSheets(accessToken: string | null) {
                 const isHeader = firstCell.includes('mã đơn vị') || firstCell.includes('stt') || firstCell.includes('ma don') || firstCell === '"mã đơn vị"';
                 const startIndex = isHeader ? 1 : 0;
                 const parsed2 = data.slice(startIndex).map(row => parseCustomerData(row));
-                secondSheetExpiryMap = new Map(parsed2.map(c => [c.customerCode, c.inspectionExpiry]));
+                secondSheetMap = new Map(parsed2.map(c => [c.customerCode, c]));
               }
             }
           });
 
-          if (secondSheetExpiryMap.size > 0 && parsedMain.length > 0) {
-            parsedMain = parsedMain.map(c => ({
-              ...c,
-              isReplaced: !!c.customerCode && secondSheetExpiryMap.has(c.customerCode) && secondSheetExpiryMap.get(c.customerCode) !== c.inspectionExpiry
-            }));
+          if (secondSheetMap.size > 0 && parsedMain.length > 0) {
+            parsedMain = parsedMain.map(c => {
+              let isReplaced = false;
+              let changes: Record<string, { old: string, new: string }> = {};
+
+              if (c.customerCode && secondSheetMap.has(c.customerCode)) {
+                const c2 = secondSheetMap.get(c.customerCode)!;
+                isReplaced = String(c2.inspectionExpiry).trim() !== String(c.inspectionExpiry).trim();
+
+                const fieldsToCompare: (keyof Customer)[] = ['deviceCode', 'deviceNumber', 'typeCode', 'current', 'voltage', 'phases', 'inspectionDate', 'inspectionExpiry', 'measurementPointCode', 'multiplier', 'tiRatio'];
+                fieldsToCompare.forEach(key => {
+                  const val1 = String(c[key] || '').trim();
+                  const val2 = String(c2[key] || '').trim();
+                  if (val1 !== val2) {
+                    changes[key] = { old: val2, new: val1 };
+                  }
+                });
+              }
+
+              return { ...c, isReplaced, changes };
+            });
           }
 
           setCustomers(parsedMain);

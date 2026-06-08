@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Box, GitCompare, Activity, Settings2, Zap, FilterX, CheckCircle, Target } from 'lucide-react';
+import { Users, Box, GitCompare, Activity, Settings2, Zap, FilterX, CheckCircle, Target, Building2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { Details } from './Details';
 import { isTargetYear } from '../utils/dateHelpers';
 
-export type PeriodicMode = 'all' | 'types' | 'tiRatios' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'replaced2026';
+export type PeriodicMode = 'all' | 'stations' | 'types' | 'tiRatios' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'replaced2026';
 
 export function PeriodicList({ customers }: { customers: Customer[] }) {
   const [viewMode, setViewMode] = useState<PeriodicMode>('all');
@@ -20,6 +20,7 @@ export function PeriodicList({ customers }: { customers: Customer[] }) {
 
   const stats = useMemo(() => {
     const totalCustomers = periodicCustomers.length;
+    const totalStations = new Set(periodicCustomers.map(c => c.stationCode).filter(Boolean)).size;
     const totalTypes = new Set(periodicCustomers.map(c => c.typeCode).filter(Boolean)).size;
     const totalTiRatios = new Set(periodicCustomers.map(c => c.tiRatio).filter(Boolean)).size;
     const phase1Direct = periodicCustomers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
@@ -36,8 +37,9 @@ export function PeriodicList({ customers }: { customers: Customer[] }) {
   
     return { 
       totalCustomers, 
+      totalStations,
       totalTypes, 
-      totalTiRatios, 
+      totalTiRatios,
       phase1Direct, 
       phase1Indirect, 
       phase3Direct, 
@@ -75,6 +77,13 @@ export function PeriodicList({ customers }: { customers: Customer[] }) {
             onClick={() => setViewMode('replaced2026')}
             active={viewMode === 'replaced2026'}
             highlight
+          />
+          <StatCard
+            icon={Building2}
+            title="Số lượng trạm"
+            value={stats.totalStations}
+            onClick={() => setViewMode('stations')}
+            active={viewMode === 'stations'}
           />
           <StatCard
             icon={Box}

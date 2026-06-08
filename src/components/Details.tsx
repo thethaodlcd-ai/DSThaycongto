@@ -9,7 +9,7 @@ import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026' | 'changedCustomers';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -22,6 +22,8 @@ export function Details({ customers, mode }: DetailsProps) {
     const groups: Record<string, Customer[]> = {};
     if (mode === 'all') {
       groups['Tất cả khách hàng'] = customers;
+    } else if (mode === 'changedCustomers') {
+      groups['Khách hàng có thay đổi'] = customers.filter(c => c.changes && Object.keys(c.changes).length > 0);
     } else if (mode === 'overdue') {
       groups['QUÁ HẠN KIỂN ĐINH (%)'] = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry));
     } else if (mode === 'periodic2026') {
@@ -322,14 +324,16 @@ export function Details({ customers, mode }: DetailsProps) {
                   <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thông số thiết bị</h4>
                   <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
                     <DetailRow label="Mã đơn vị" value={selectedCustomer.unitCode} />
-                    <DetailRow label="Mã thiết bị" value={selectedCustomer.deviceCode} mono />
-                    <DetailRow label="Số thiết bị" value={selectedCustomer.deviceNumber} mono />
-                    <DetailRow label="Mã loại" value={selectedCustomer.typeCode} />
-                    <DetailRow label="Dòng điện / Điện áp" value={[selectedCustomer.current, selectedCustomer.voltage].filter(Boolean).join(" / ")} />
-                    <DetailRow label="Số pha" value={selectedCustomer.phases} />
-                    <DetailRow label="Hệ số nhân" value={selectedCustomer.multiplier} />
-                    <DetailRow label="Kiểm định (Ngày - Hạn)" value={[selectedCustomer.inspectionDate, selectedCustomer.inspectionExpiry].filter(Boolean).join(" - ")} />
-                    <DetailRow label="Tỷ số TI đấu" value={selectedCustomer.tiRatio} />
+                    <DetailRow label="Mã thiết bị" value={selectedCustomer.deviceCode} mono change={selectedCustomer.changes?.deviceCode} />
+                    <DetailRow label="Số thiết bị" value={selectedCustomer.deviceNumber} mono change={selectedCustomer.changes?.deviceNumber} />
+                    <DetailRow label="Mã loại" value={selectedCustomer.typeCode} change={selectedCustomer.changes?.typeCode} />
+                    <DetailRow label="Dòng điện" value={selectedCustomer.current} change={selectedCustomer.changes?.current} />
+                    <DetailRow label="Điện áp" value={selectedCustomer.voltage} change={selectedCustomer.changes?.voltage} />
+                    <DetailRow label="Số pha" value={selectedCustomer.phases} change={selectedCustomer.changes?.phases} />
+                    <DetailRow label="Hệ số nhân" value={selectedCustomer.multiplier} change={selectedCustomer.changes?.multiplier} />
+                    <DetailRow label="Kiểm định (Ngày)" value={selectedCustomer.inspectionDate} change={selectedCustomer.changes?.inspectionDate} />
+                    <DetailRow label="Kiểm định (Hạn)" value={selectedCustomer.inspectionExpiry} change={selectedCustomer.changes?.inspectionExpiry} />
+                    <DetailRow label="Tỷ số TI đấu" value={selectedCustomer.tiRatio} change={selectedCustomer.changes?.tiRatio} />
                   </div>
                 </div>
                 
@@ -339,7 +343,7 @@ export function Details({ customers, mode }: DetailsProps) {
                     <DetailRow label="Mã trạm" value={selectedCustomer.stationCode} />
                     <DetailRow label="Số trụ" value={selectedCustomer.poleNumber} />
                     <DetailRow label="Khu vực" value={[selectedCustomer.areaCode, selectedCustomer.areaNumber].filter(Boolean).join(" - ")} />
-                    <DetailRow label="Mã điểm đo" value={selectedCustomer.measurementPointCode} />
+                    <DetailRow label="Mã điểm đo" value={selectedCustomer.measurementPointCode} change={selectedCustomer.changes?.measurementPointCode} />
                     <DetailRow label="Loại (TT/GT)" value={selectedCustomer.directIndirectType} />
                   </div>
                 </div>
@@ -393,12 +397,28 @@ export function Details({ customers, mode }: DetailsProps) {
   );
 }
 
-function DetailRow({ label, value, mono = false }: { label: string, value: string, mono?: boolean }) {
+function DetailRow({ label, value, mono = false, change }: { label: string, value: string, mono?: boolean, change?: { old: string, new: string } }) {
+  if (change) {
+    return (
+      <div className="flex justify-between items-center text-red-500 bg-red-50/50 -mx-1 px-1 rounded">
+        <span className="text-xs font-medium">{label}:</span>
+        <span className={twMerge(
+          "text-xs flex items-center gap-1 ml-2 text-right",
+          mono ? "font-mono font-bold text-red-700" : "font-bold text-red-600"
+        )}>
+          <span className="line-through opacity-60 decoration-red-300">{change.old || '-'}</span>
+          <span className="text-red-300">→</span>
+          <span>{change.new || '-'}</span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex justify-between items-center">
       <span className="text-xs text-slate-500 font-medium">{label}:</span>
       <span className={twMerge(
-        "text-xs",
+        "text-xs text-right ml-2",
         mono ? "font-mono font-bold text-slate-700" : "font-bold text-slate-900"
       )}>
         {value || '-'}
