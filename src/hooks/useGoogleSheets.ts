@@ -78,7 +78,7 @@ export function useGoogleSheets(accessToken: string | null) {
                     isReplaced = String(c2.inspectionExpiry).trim() !== String(c.inspectionExpiry).trim();
 
                     // Compare fields
-                    const fieldsToCompare: (keyof Customer)[] = ['deviceCode', 'deviceNumber', 'typeCode', 'current', 'voltage', 'phases', 'inspectionDate', 'inspectionExpiry', 'measurementPointCode', 'multiplier', 'tiRatio'];
+                    const fieldsToCompare: (keyof Customer)[] = ['deviceNumber', 'customerName', 'priceString'];
                     fieldsToCompare.forEach(key => {
                       const val1 = String(c[key] || '').trim();
                       const val2 = String(c2[key] || '').trim();
@@ -154,7 +154,7 @@ export function useGoogleSheets(accessToken: string | null) {
                 const c2 = secondSheetMap.get(c.customerCode)!;
                 isReplaced = String(c2.inspectionExpiry).trim() !== String(c.inspectionExpiry).trim();
 
-                const fieldsToCompare: (keyof Customer)[] = ['deviceCode', 'deviceNumber', 'typeCode', 'current', 'voltage', 'phases', 'inspectionDate', 'inspectionExpiry', 'measurementPointCode', 'multiplier', 'tiRatio'];
+                const fieldsToCompare: (keyof Customer)[] = ['deviceNumber', 'customerName', 'priceString'];
                 fieldsToCompare.forEach(key => {
                   const val1 = String(c[key] || '').trim();
                   const val2 = String(c2[key] || '').trim();

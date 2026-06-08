@@ -310,7 +310,20 @@ export function Details({ customers, mode }: DetailsProps) {
                 {selectedCustomer.customerName ? selectedCustomer.customerName.charAt(0) : 'KH'}
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{selectedCustomer.customerName || 'Không có tên'}</h2>
+                {selectedCustomer.changes?.customerName ? (
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                      {selectedCustomer.customerName || 'Không có tên'}
+                    </h2>
+                    <div className="flex items-center gap-2 mt-1 text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded w-fit">
+                       <span className="line-through opacity-60 decoration-red-300">{selectedCustomer.changes.customerName.old || 'Không có tên'}</span>
+                       <span className="text-red-300">→</span>
+                       <span>{selectedCustomer.changes.customerName.new || 'Không có tên'}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{selectedCustomer.customerName || 'Không có tên'}</h2>
+                )}
                 <p className="text-slate-500 flex items-start sm:items-center gap-1.5 mt-1 font-medium text-xs sm:text-sm">
                   <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 mt-0.5 sm:mt-0 shrink-0" />
                   <span className="truncate">{selectedCustomer.address || 'Chưa có thông tin địa chỉ'}</span>
@@ -324,16 +337,16 @@ export function Details({ customers, mode }: DetailsProps) {
                   <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thông số thiết bị</h4>
                   <div className="mt-2 bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
                     <DetailRow label="Mã đơn vị" value={selectedCustomer.unitCode} />
-                    <DetailRow label="Mã thiết bị" value={selectedCustomer.deviceCode} mono change={selectedCustomer.changes?.deviceCode} />
+                    <DetailRow label="Mã thiết bị" value={selectedCustomer.deviceCode} mono />
                     <DetailRow label="Số thiết bị" value={selectedCustomer.deviceNumber} mono change={selectedCustomer.changes?.deviceNumber} />
-                    <DetailRow label="Mã loại" value={selectedCustomer.typeCode} change={selectedCustomer.changes?.typeCode} />
-                    <DetailRow label="Dòng điện" value={selectedCustomer.current} change={selectedCustomer.changes?.current} />
-                    <DetailRow label="Điện áp" value={selectedCustomer.voltage} change={selectedCustomer.changes?.voltage} />
-                    <DetailRow label="Số pha" value={selectedCustomer.phases} change={selectedCustomer.changes?.phases} />
-                    <DetailRow label="Hệ số nhân" value={selectedCustomer.multiplier} change={selectedCustomer.changes?.multiplier} />
-                    <DetailRow label="Kiểm định (Ngày)" value={selectedCustomer.inspectionDate} change={selectedCustomer.changes?.inspectionDate} />
-                    <DetailRow label="Kiểm định (Hạn)" value={selectedCustomer.inspectionExpiry} change={selectedCustomer.changes?.inspectionExpiry} />
-                    <DetailRow label="Tỷ số TI đấu" value={selectedCustomer.tiRatio} change={selectedCustomer.changes?.tiRatio} />
+                    <DetailRow label="Mã loại" value={selectedCustomer.typeCode} />
+                    <DetailRow label="Dòng điện" value={selectedCustomer.current} />
+                    <DetailRow label="Điện áp" value={selectedCustomer.voltage} />
+                    <DetailRow label="Số pha" value={selectedCustomer.phases} />
+                    <DetailRow label="Hệ số nhân" value={selectedCustomer.multiplier} />
+                    <DetailRow label="Kiểm định (Ngày)" value={selectedCustomer.inspectionDate} />
+                    <DetailRow label="Kiểm định (Hạn)" value={selectedCustomer.inspectionExpiry} />
+                    <DetailRow label="Tỷ số TI đấu" value={selectedCustomer.tiRatio} />
                   </div>
                 </div>
                 
@@ -343,7 +356,7 @@ export function Details({ customers, mode }: DetailsProps) {
                     <DetailRow label="Mã trạm" value={selectedCustomer.stationCode} />
                     <DetailRow label="Số trụ" value={selectedCustomer.poleNumber} />
                     <DetailRow label="Khu vực" value={[selectedCustomer.areaCode, selectedCustomer.areaNumber].filter(Boolean).join(" - ")} />
-                    <DetailRow label="Mã điểm đo" value={selectedCustomer.measurementPointCode} change={selectedCustomer.changes?.measurementPointCode} />
+                    <DetailRow label="Mã điểm đo" value={selectedCustomer.measurementPointCode} />
                     <DetailRow label="Loại (TT/GT)" value={selectedCustomer.directIndirectType} />
                   </div>
                 </div>
@@ -357,7 +370,7 @@ export function Details({ customers, mode }: DetailsProps) {
                     <DetailRow label="Mã khách hàng" value={selectedCustomer.customerCode} mono />
                     <DetailRow label="Mã sổ ghi điện" value={selectedCustomer.bookCode} />
                     <DetailRow label="Ngày treo tháo" value={selectedCustomer.installRemoveDate} />
-                    <DetailRow label="Chuỗi giá" value={selectedCustomer.priceString} />
+                    <DetailRow label="Chuỗi giá" value={selectedCustomer.priceString} change={selectedCustomer.changes?.priceString} />
                   </div>
                 </div>
 
