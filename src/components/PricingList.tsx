@@ -11,6 +11,7 @@ export function PricingList({ customers }: { customers: Customer[] }) {
 
   const pricingCustomers = useMemo(() => {
     return customers.filter(c => {
+      if (c.status === 'removed') return false;
       const p = String(c.priceString).trim().replace(/\s+/g, '').toUpperCase();
       return p === "BT:100%*KDDV-A;CD:100%*KDDV-A;TD:100%*KDDV-A" || 
              p === "BT:100%*SXBT-A;CD:100%*SXBT-A;TD:100%*SXBT-A" || 

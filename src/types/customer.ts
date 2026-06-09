@@ -28,6 +28,7 @@ export interface Customer {
   solarPower: string; // Công suất lắp NLMT (kWp)
   isReplaced?: boolean; // Đã thay
   changes?: Record<string, { old: string, new: string }>; // Store old and new values for changed fields
+  status?: 'existing' | 'new' | 'removed'; // Trạng thái tồn tại giữa 2 file
   
   // Aliases for compatibility
   address?: string;

@@ -11,11 +11,11 @@ export function PeriodicList({ customers }: { customers: Customer[] }) {
   const [viewMode, setViewMode] = useState<PeriodicMode>('all');
 
   const periodicCustomers = useMemo(() => {
-    return customers.filter(c => isTargetYear(c.inspectionExpiry, 2026));
+    return customers.filter(c => c.status !== 'removed' && isTargetYear(c.inspectionExpiry, 2026));
   }, [customers]);
 
   const replacedCustomers = useMemo(() => {
-    return customers.filter(c => c.isReplaced);
+    return customers.filter(c => c.status !== 'removed' && c.isReplaced);
   }, [customers]);
 
   const stats = useMemo(() => {

@@ -62,18 +62,25 @@ export function useGoogleSheets(accessToken: string | null) {
               const rawData2 = await data2Res.json();
               if (rawData2.values && Array.isArray(rawData2.values)) {
                 const secondSheetMap = new Map<string, Customer>();
-                rawData2.values.forEach((r: any[]) => {
-                  const cust = parseCustomerData(r);
+                const parsed2 = rawData2.values.map((r: any[]) => parseCustomerData(r));
+                parsed2.forEach((cust: Customer) => {
                   if (cust.customerCode) {
                     secondSheetMap.set(cust.customerCode, cust);
                   }
                 });
                 
-                parsed = parsed.map(c => {
+                const firstSheetMap = new Map<string, Customer>();
+                parsed.forEach(c => {
+                  if (c.customerCode) firstSheetMap.set(c.customerCode, c);
+                });
+
+                let enrichedMain = parsed.map(c => {
                   let isReplaced = false;
                   let changes: Record<string, { old: string, new: string }> = {};
+                  let status: 'new' | 'existing' = 'new';
 
                   if (c.customerCode && secondSheetMap.has(c.customerCode)) {
+                    status = 'existing';
                     const c2 = secondSheetMap.get(c.customerCode)!;
                     isReplaced = String(c2.inspectionExpiry).trim() !== String(c.inspectionExpiry).trim();
 
@@ -91,9 +98,16 @@ export function useGoogleSheets(accessToken: string | null) {
                   return {
                     ...c,
                     isReplaced,
-                    changes
+                    changes,
+                    status
                   };
                 });
+                
+                const removedCustomers = parsed2
+                  .filter((c2: Customer) => c2.customerCode && !firstSheetMap.has(c2.customerCode))
+                  .map((c2: Customer) => ({ ...c2, status: 'removed' as const }));
+
+                parsed = [...enrichedMain, ...removedCustomers] as Customer[];
               }
             }
           } catch (e) {
@@ -130,6 +144,7 @@ export function useGoogleSheets(accessToken: string | null) {
           });
 
           let secondSheetMap = new Map<string, Customer>();
+          let parsed2: Customer[] = [];
           Papa.parse(text2, {
             header: false,
             skipEmptyLines: true,
@@ -139,18 +154,25 @@ export function useGoogleSheets(accessToken: string | null) {
                 const firstCell = String(data[0][0]).toLowerCase();
                 const isHeader = firstCell.includes('mã đơn vị') || firstCell.includes('stt') || firstCell.includes('ma don') || firstCell === '"mã đơn vị"';
                 const startIndex = isHeader ? 1 : 0;
-                const parsed2 = data.slice(startIndex).map(row => parseCustomerData(row));
+                parsed2 = data.slice(startIndex).map(row => parseCustomerData(row));
                 secondSheetMap = new Map(parsed2.map(c => [c.customerCode, c]));
               }
             }
           });
 
+          const firstSheetMap = new Map<string, Customer>();
+          parsedMain.forEach(c => {
+            if (c.customerCode) firstSheetMap.set(c.customerCode, c);
+          });
+
           if (secondSheetMap.size > 0 && parsedMain.length > 0) {
-            parsedMain = parsedMain.map(c => {
+            let enrichedMain = parsedMain.map(c => {
               let isReplaced = false;
               let changes: Record<string, { old: string, new: string }> = {};
+              let status: 'new' | 'existing' = 'new';
 
               if (c.customerCode && secondSheetMap.has(c.customerCode)) {
+                status = 'existing';
                 const c2 = secondSheetMap.get(c.customerCode)!;
                 isReplaced = String(c2.inspectionExpiry).trim() !== String(c.inspectionExpiry).trim();
 
@@ -164,8 +186,14 @@ export function useGoogleSheets(accessToken: string | null) {
                 });
               }
 
-              return { ...c, isReplaced, changes };
+              return { ...c, isReplaced, changes, status };
             });
+            
+            const removedCustomers = parsed2
+              .filter(c2 => c2.customerCode && !firstSheetMap.has(c2.customerCode))
+              .map(c2 => ({ ...c2, status: 'removed' as const }));
+
+            parsedMain = [...enrichedMain, ...removedCustomers];
           }
 
           setCustomers(parsedMain);

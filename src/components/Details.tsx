@@ -9,7 +9,7 @@ import { FieldWorkSection } from './FieldWorkSection';
 
 interface DetailsProps {
   customers: Customer[];
-  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026' | 'changedCustomers';
+  mode: 'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes';
 }
 
 export function Details({ customers, mode }: DetailsProps) {
@@ -30,6 +30,20 @@ export function Details({ customers, mode }: DetailsProps) {
       groups['Thay định kỳ 2026'] = customers.filter(c => isTargetYear(c.inspectionExpiry, 2026));
     } else if (mode === 'replaced2026') {
       groups['Đã thay'] = customers.filter(c => c.isReplaced);
+    } else if (mode === 'removedCustomers') {
+      const removed = customers.filter(c => c.status === 'removed');
+      groups['Khách hàng 1 Pha'] = removed.filter(c => String(c.phases).includes('1'));
+      groups['Khách hàng 3 Pha'] = removed.filter(c => String(c.phases).includes('3'));
+    } else if (mode === 'newCustomers') {
+      const news = customers.filter(c => c.status === 'new');
+      groups['Khách hàng 1 Pha'] = news.filter(c => String(c.phases).includes('1'));
+      groups['Khách hàng 3 Pha'] = news.filter(c => String(c.phases).includes('3'));
+    } else if (mode === 'customerTypes') {
+      const current = customers.filter(c => c.status !== 'removed');
+      groups['Sinh hoạt (SHBT)'] = current.filter(c => c.priceString?.includes('SHBT'));
+      groups['Bệnh viện - Trường học (CQBV)'] = current.filter(c => c.priceString?.includes('CQBV'));
+      groups['Kinh doanh (KDDV)'] = current.filter(c => c.priceString?.includes('KDDV'));
+      groups['Sản xuất (SXBT)'] = current.filter(c => c.priceString?.includes('SXBT'));
     } else if (mode === 'phase1') {
       groups['Khách hàng 1 Pha'] = customers.filter(c => String(c.phases).includes('1'));
     } else if (mode === 'phase3') {
@@ -171,7 +185,7 @@ export function Details({ customers, mode }: DetailsProps) {
       )}>
         <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode.includes('phase') ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : mode === 'notesAndSolar' ? 'Khách hàng NLMT' : mode === 'excludeSpecificPrices' ? 'Lọc chuỗi giá' : 'Danh mục Mã Sổ'}
+            {mode === 'all' ? 'Tất cả' : mode === 'stations' ? 'Danh mục Mã Trạm' : mode === 'overdue' ? 'Kiểm định' : mode === 'removedCustomers' ? 'KH Thanh Lý' : mode === 'newCustomers' ? 'KH Lắp Mới' : mode === 'customerTypes' ? 'Loại Khách Hàng' : mode.includes('phase') ? 'Phân loại pha' : mode === 'types' ? 'Chủng loại công tơ' : mode === 'tiRatios' ? 'Tỷ số TI đấu' : mode === 'notesAndSolar' ? 'Khách hàng NLMT' : mode === 'excludeSpecificPrices' ? 'Lọc chuỗi giá' : 'Danh mục Mã Sổ'}
           </label>
         </div>
         <div className="flex-1 overflow-y-auto py-2">

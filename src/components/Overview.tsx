@@ -1,45 +1,57 @@
 import { useMemo } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare, FileText, Settings2, CalendarClock, FileEdit } from 'lucide-react';
+import { Users, Book, Building2, AlertTriangle, Zap, Activity, Box, GitCompare, FileText, Settings2, CalendarClock, FileEdit, Trash2, PlusCircle, Shapes } from 'lucide-react';
 import { isExpiringSoonOrOverdue, isTargetYear } from '../utils/dateHelpers';
 
 interface OverviewProps {
   customers: Customer[];
-  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'periodic2026' | 'changedCustomers') => void;
+  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'periodic2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes') => void;
 }
 
 export function Overview({ customers, onNavigate }: OverviewProps) {
   const stats = useMemo(() => {
-    const uniqueBooks = new Set(customers.map(c => c.bookCode).filter(Boolean));
-    const uniqueStations = new Set(customers.map(c => c.stationCode).filter(Boolean));
-    const uniqueTypes = new Set(customers.map(c => c.typeCode).filter(Boolean));
-    const uniqueTiRatios = new Set(customers.map(c => c.tiRatio).filter(Boolean));
+    const currentCustomers = customers.filter(c => c.status !== 'removed');
+    
+    const uniqueBooks = new Set(currentCustomers.map(c => c.bookCode).filter(Boolean));
+    const uniqueStations = new Set(currentCustomers.map(c => c.stationCode).filter(Boolean));
+    const uniqueTypes = new Set(currentCustomers.map(c => c.typeCode).filter(Boolean));
+    const uniqueTiRatios = new Set(currentCustomers.map(c => c.tiRatio).filter(Boolean));
     
     // Thống kê quá hạn thay / có ghi chú, NLMT
-    const notesAndSolarCustomers = customers.filter(c => c.notes?.trim() || c.solarPower?.trim());
+    const notesAndSolarCustomers = currentCustomers.filter(c => c.notes?.trim() || c.solarPower?.trim());
     const notesAndSolarCount = notesAndSolarCustomers.length;
     const totalSolarPower = notesAndSolarCustomers.reduce((sum, c) => {
       const power = parseFloat(c.solarPower?.replace(',', '.') || '0');
       return sum + (isNaN(power) ? 0 : power);
     }, 0);
 
-    const overdueCount = customers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry)).length;
-    const periodic2026Count = customers.filter(c => isTargetYear(c.inspectionExpiry, 2026)).length;
-    const changedCount = customers.filter(c => c.changes && Object.keys(c.changes).length > 0).length;
+    const overdueCount = currentCustomers.filter(c => isExpiringSoonOrOverdue(c.inspectionExpiry)).length;
+    const periodic2026Count = currentCustomers.filter(c => isTargetYear(c.inspectionExpiry, 2026)).length;
+    const changedCount = currentCustomers.filter(c => c.changes && Object.keys(c.changes).length > 0).length;
+    
+    // Status counts
+    const removedCount = customers.filter(c => c.status === 'removed').length;
+    const newCount = currentCustomers.filter(c => c.status === 'new').length;
+    
+    // Types counts by priceString
+    const shbtCount = currentCustomers.filter(c => c.priceString?.includes('SHBT')).length;
+    const cqbvCount = currentCustomers.filter(c => c.priceString?.includes('CQBV')).length;
+    const kddvCount = currentCustomers.filter(c => c.priceString?.includes('KDDV')).length;
+    const sxbtCount = currentCustomers.filter(c => c.priceString?.includes('SXBT')).length;
     
     // Pha cơ bản
-    const phase1Count = customers.filter(c => String(c.phases).includes('1')).length;
-    const phase3Count = customers.filter(c => String(c.phases).includes('3')).length;
+    const phase1Count = currentCustomers.filter(c => String(c.phases).includes('1')).length;
+    const phase3Count = currentCustomers.filter(c => String(c.phases).includes('3')).length;
 
     // Phân loại chi tiết pha & trực tiếp/gián tiếp
-    const phase1Direct = customers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
-    const phase1Indirect = customers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
+    const phase1Direct = currentCustomers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
+    const phase1Indirect = currentCustomers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
     
-    const phase3Direct = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
-    const phase3Indirect = customers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
+    const phase3Direct = currentCustomers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
+    const phase3Indirect = currentCustomers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
 
     return {
-      totalCustomers: customers.length,
+      totalCustomers: currentCustomers.length,
       totalBooks: uniqueBooks.size,
       totalStations: uniqueStations.size,
       totalTypes: uniqueTypes.size,
@@ -49,6 +61,12 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
       overdueCount,
       periodic2026Count,
       changedCount,
+      removedCount,
+      newCount,
+      shbtCount,
+      cqbvCount,
+      kddvCount,
+      sxbtCount,
       phase1Count,
       phase3Count,
       phase1Direct,
@@ -106,6 +124,26 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
             value={stats.changedCount}
             onClick={() => onNavigate('changedCustomers')}
             highlight
+          />
+          <StatCard
+            icon={Trash2}
+            title="Khách hàng thanh lý"
+            value={stats.removedCount}
+            onClick={() => onNavigate('removedCustomers')}
+            highlight
+          />
+          <StatCard
+            icon={PlusCircle}
+            title="Khách hàng lắp mới"
+            value={stats.newCount}
+            onClick={() => onNavigate('newCustomers')}
+            highlight
+          />
+          <StatCard
+            icon={Shapes}
+            title="Loại khách hàng"
+            value={stats.shbtCount + stats.cqbvCount + stats.kddvCount + stats.sxbtCount}
+            onClick={() => onNavigate('customerTypes')}
           />
           <StatCard
             icon={Zap}
