@@ -5,7 +5,7 @@ import { isExpiringSoonOrOverdue, isTargetYear } from '../utils/dateHelpers';
 
 interface OverviewProps {
   customers: Customer[];
-  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'periodic2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes') => void;
+  onNavigate: (mode: 'all' | 'books' | 'stations' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'periodic2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes' | 'customersWithPE') => void;
 }
 
 export function Overview({ customers, onNavigate }: OverviewProps) {
@@ -76,6 +76,8 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
     const phase3Direct = currentCustomers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
     const phase3Indirect = currentCustomers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
 
+    const peCount = currentCustomers.filter(c => c.customerCode?.includes('PE')).length;
+
     return {
       totalCustomers: currentCustomers.length,
       totalBooks: uniqueBooks.size,
@@ -102,6 +104,7 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
       phase1Indirect,
       phase3Direct,
       phase3Indirect,
+      peCount,
     };
   }, [customers]);
 
@@ -145,6 +148,13 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
             title="Thay định kỳ 2026"
             value={stats.periodic2026Count}
             onClick={() => onNavigate('periodic2026')}
+            highlight
+          />
+          <StatCard
+            icon={Zap}
+            title="Khách hàng có PE"
+            value={stats.peCount}
+            onClick={() => onNavigate('customersWithPE')}
             highlight
           />
           <StatCard

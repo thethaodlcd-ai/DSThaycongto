@@ -16,7 +16,7 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic' | 'pricing'>('overview');
-  const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes'>('books');
+  const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes' | 'customersWithPE'>('books');
   const [authError, setAuthError] = useState<string | null>(null);
 
   const { customers, loading, error, fetchCustomers } = useGoogleSheets(accessToken);
