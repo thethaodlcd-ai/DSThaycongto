@@ -40,10 +40,41 @@ export function Details({ customers, mode }: DetailsProps) {
       groups['Khách hàng 3 Pha'] = news.filter(c => String(c.phases).includes('3'));
     } else if (mode === 'customerTypes') {
       const current = customers.filter(c => c.status !== 'removed');
-      groups['Sinh hoạt (SHBT)'] = current.filter(c => c.priceString?.includes('SHBT'));
-      groups['Bệnh viện - Trường học (CQBV)'] = current.filter(c => c.priceString?.includes('CQBV'));
-      groups['Kinh doanh (KDDV)'] = current.filter(c => c.priceString?.includes('KDDV'));
-      groups['Sản xuất (SXBT)'] = current.filter(c => c.priceString?.includes('SXBT'));
+      groups['Sinh hoạt (SHBT)'] = [];
+      groups['Bệnh viện - Trường học (CQBV)'] = [];
+      groups['Cơ quan hành chính (CQHC)'] = [];
+      groups['Kinh doanh (KDDV)'] = [];
+      groups['Sản xuất (SXBT)'] = [];
+      groups['Nhiều loại giá (Hỗn hợp)'] = [];
+      groups['Khác'] = [];
+
+      current.forEach(c => {
+        const p = c.priceString || '';
+        const hasSHBT = p.includes('SHBT');
+        const hasCQBV = p.includes('CQBV');
+        const hasCQHC = p.includes('CQHC');
+        const hasKDDV = p.includes('KDDV');
+        const hasSXBT = p.includes('SXBT');
+        
+        const matchCount = [hasSHBT, hasCQBV, hasCQHC, hasKDDV, hasSXBT].filter(Boolean).length;
+        
+        if (matchCount > 1) {
+          groups['Nhiều loại giá (Hỗn hợp)'].push(c);
+        } else if (matchCount === 0) {
+          groups['Khác'].push(c);
+        } else {
+          if (hasSHBT) groups['Sinh hoạt (SHBT)'].push(c);
+          else if (hasCQBV) groups['Bệnh viện - Trường học (CQBV)'].push(c);
+          else if (hasCQHC) groups['Cơ quan hành chính (CQHC)'].push(c);
+          else if (hasKDDV) groups['Kinh doanh (KDDV)'].push(c);
+          else if (hasSXBT) groups['Sản xuất (SXBT)'].push(c);
+        }
+      });
+
+      // Remove empty categories
+      Object.keys(groups).forEach(k => {
+        if (groups[k].length === 0) delete groups[k];
+      });
     } else if (mode === 'phase1') {
       groups['Khách hàng 1 Pha'] = customers.filter(c => String(c.phases).includes('1'));
     } else if (mode === 'phase3') {

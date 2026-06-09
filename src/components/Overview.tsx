@@ -33,11 +33,37 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
     const removedCount = customers.filter(c => c.status === 'removed').length;
     const newCount = currentCustomers.filter(c => c.status === 'new').length;
     
-    // Types counts by priceString
-    const shbtCount = currentCustomers.filter(c => c.priceString?.includes('SHBT')).length;
-    const cqbvCount = currentCustomers.filter(c => c.priceString?.includes('CQBV')).length;
-    const kddvCount = currentCustomers.filter(c => c.priceString?.includes('KDDV')).length;
-    const sxbtCount = currentCustomers.filter(c => c.priceString?.includes('SXBT')).length;
+    // Types counts by priceString using mutually exclusive classification
+    let shbtCount = 0;
+    let cqbvCount = 0;
+    let cqhcCount = 0;
+    let kddvCount = 0;
+    let sxbtCount = 0;
+    let mixedCount = 0;
+    let otherCount = 0;
+
+    currentCustomers.forEach(c => {
+      const p = c.priceString || '';
+      const hasSHBT = p.includes('SHBT');
+      const hasCQBV = p.includes('CQBV');
+      const hasCQHC = p.includes('CQHC');
+      const hasKDDV = p.includes('KDDV');
+      const hasSXBT = p.includes('SXBT');
+      
+      const matchCount = [hasSHBT, hasCQBV, hasCQHC, hasKDDV, hasSXBT].filter(Boolean).length;
+      
+      if (matchCount > 1) {
+        mixedCount++;
+      } else if (matchCount === 0) {
+        otherCount++;
+      } else {
+        if (hasSHBT) shbtCount++;
+        else if (hasCQBV) cqbvCount++;
+        else if (hasCQHC) cqhcCount++;
+        else if (hasKDDV) kddvCount++;
+        else if (hasSXBT) sxbtCount++;
+      }
+    });
     
     // Pha cơ bản
     const phase1Count = currentCustomers.filter(c => String(c.phases).includes('1')).length;
@@ -65,8 +91,11 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
       newCount,
       shbtCount,
       cqbvCount,
+      cqhcCount,
       kddvCount,
       sxbtCount,
+      mixedCount,
+      otherCount,
       phase1Count,
       phase3Count,
       phase1Direct,
@@ -142,7 +171,7 @@ export function Overview({ customers, onNavigate }: OverviewProps) {
           <StatCard
             icon={Shapes}
             title="Loại khách hàng"
-            value={stats.shbtCount + stats.cqbvCount + stats.kddvCount + stats.sxbtCount}
+            value={stats.shbtCount + stats.cqbvCount + stats.cqhcCount + stats.kddvCount + stats.sxbtCount + stats.mixedCount + stats.otherCount}
             onClick={() => onNavigate('customerTypes')}
           />
           <StatCard
