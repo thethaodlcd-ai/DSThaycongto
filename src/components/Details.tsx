@@ -306,6 +306,9 @@ export function Details({ customers, mode }: DetailsProps) {
         <div className="flex-1 overflow-y-auto">
           {filteredCustomers.map(customer => {
             const isSelected = selectedCustomerCode === customer.customerCode;
+            const hasChanges = customer.changes && Object.keys(customer.changes).length > 0;
+            const shouldHighlight = mode === 'replaced2026' && hasChanges;
+
             return (
               <div 
                 key={customer.customerCode || customer.stt}
@@ -314,17 +317,24 @@ export function Details({ customers, mode }: DetailsProps) {
                   setMobilePane('detail');
                 }}
                 className={twMerge(
-                  "p-4 border-b border-slate-100 cursor-pointer transition-colors",
-                  isSelected ? "bg-white ring-1 ring-inset ring-indigo-200" : "hover:bg-slate-100/50 bg-slate-50"
+                  "p-4 border-b cursor-pointer transition-colors",
+                  isSelected 
+                    ? (shouldHighlight ? "bg-amber-50 ring-1 ring-inset ring-amber-300 border-amber-200" : "bg-white ring-1 ring-inset ring-indigo-200 border-slate-100") 
+                    : (shouldHighlight ? "bg-amber-50/50 hover:bg-amber-100/50 border-amber-100" : "bg-slate-50 hover:bg-slate-100/50 border-slate-100")
                 )}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <span className={twMerge(
-                    "text-[10px] font-mono font-bold",
-                    isSelected ? "text-indigo-500" : "text-slate-400"
-                  )}>
-                    {customer.customerCode}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={twMerge(
+                      "text-[10px] font-mono font-bold",
+                      isSelected 
+                        ? (shouldHighlight ? "text-amber-600" : "text-indigo-500") 
+                        : (shouldHighlight ? "text-amber-600" : "text-slate-400")
+                    )}>
+                      {customer.customerCode}
+                    </span>
+                    {shouldHighlight && <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-bold uppercase truncate max-w-[80px]">Có Đổi</span>}
+                  </div>
                   <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">ĐV: {customer.unitCode || '-'}</span>
                 </div>
                 <h3 className={twMerge(

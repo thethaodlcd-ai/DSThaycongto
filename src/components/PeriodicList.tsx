@@ -57,7 +57,6 @@ export function PeriodicList({ customers }: { customers: Customer[] }) {
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Danh Sách Thay Định Kỳ - Tiến Độ 2026</h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">Đã thay: {stats.replacedCount} / Phải Thay: {stats.totalPlan} ({(stats.replacedCount / (stats.totalPlan || 1) * 100).toFixed(1)}%)</p>
         </div>
       </div>
 
@@ -69,14 +68,6 @@ export function PeriodicList({ customers }: { customers: Customer[] }) {
             value={stats.totalCustomers}
             onClick={() => setViewMode('all')}
             active={viewMode === 'all'}
-          />
-          <StatCard
-            icon={CheckCircle}
-            title="Đã thay"
-            value={stats.replacedCount}
-            onClick={() => setViewMode('replaced2026')}
-            active={viewMode === 'replaced2026'}
-            highlight
           />
           <StatCard
             icon={Building2}
