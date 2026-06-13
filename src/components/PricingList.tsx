@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Customer } from '../types/customer';
-import { Users, Box, GitCompare, Activity, Settings2, Zap } from 'lucide-react';
+import { Users, Box, GitCompare, Activity, Settings2, Zap, Building2 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { Details } from './Details';
 
-export type PricingMode = 'all' | 'types' | 'tiRatios' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect';
+export type PricingMode = 'all' | 'stations' | 'types' | 'tiRatios' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect';
 
 export function PricingList({ customers }: { customers: Customer[] }) {
   const [viewMode, setViewMode] = useState<PricingMode>('all');
@@ -22,6 +22,7 @@ export function PricingList({ customers }: { customers: Customer[] }) {
 
   const stats = useMemo(() => {
     const totalCustomers = pricingCustomers.length;
+    const totalStations = new Set(pricingCustomers.map(c => c.stationCode).filter(Boolean)).size;
     const totalTypes = new Set(pricingCustomers.map(c => c.typeCode).filter(Boolean)).size;
     const totalTiRatios = new Set(pricingCustomers.map(c => c.tiRatio).filter(Boolean)).size;
     const phase1Direct = pricingCustomers.filter(c => String(c.phases).includes('1') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
@@ -29,7 +30,7 @@ export function PricingList({ customers }: { customers: Customer[] }) {
     const phase3Direct = pricingCustomers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('trực tiếp')).length;
     const phase3Indirect = pricingCustomers.filter(c => String(c.phases).includes('3') && String(c.directIndirectType).toLowerCase().includes('gián tiếp')).length;
   
-    return { totalCustomers, totalTypes, totalTiRatios, phase1Direct, phase1Indirect, phase3Direct, phase3Indirect };
+    return { totalCustomers, totalStations, totalTypes, totalTiRatios, phase1Direct, phase1Indirect, phase3Direct, phase3Indirect };
   }, [pricingCustomers]);
 
   return (
@@ -49,6 +50,13 @@ export function PricingList({ customers }: { customers: Customer[] }) {
             value={stats.totalCustomers}
             onClick={() => setViewMode('all')}
             active={viewMode === 'all'}
+          />
+          <StatCard
+            icon={Building2}
+            title="Số lượng trạm"
+            value={stats.totalStations}
+            onClick={() => setViewMode('stations')}
+            active={viewMode === 'stations'}
           />
           <StatCard
             icon={Box}

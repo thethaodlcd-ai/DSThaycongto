@@ -8,6 +8,7 @@ export function useGoogleSheets(accessToken: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [tiCustomers, setTiCustomers] = useState<any[]>([]);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -31,6 +32,13 @@ export function useGoogleSheets(accessToken: string | null) {
         const metaData = await metaRes.json();
         const firstSheetTitle = metaData.sheets[0]?.properties.title;
         const secondSheetTitle = metaData.sheets[1]?.properties.title;
+        let tiSheetTitle = null;
+        for (const s of metaData.sheets) {
+          if (s.properties.sheetId === 1131885151 || `${s.properties.title}`.toLowerCase().includes('ti')) {
+            tiSheetTitle = s.properties.title;
+            break;
+          }
+        }
 
         if (!firstSheetTitle) throw new Error("No sheets found in the spreadsheet");
 
@@ -114,17 +122,53 @@ export function useGoogleSheets(accessToken: string | null) {
             console.error("Failed to fetch second sheet for comparison", e);
           }
         }
+        
+        let fetchedTiData: any[] = [];
+        if (tiSheetTitle) {
+          try {
+            const tiRes = await fetch(
+              `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(tiSheetTitle)}!A1:AA`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            if (tiRes.ok) {
+              const rawTiData = await tiRes.json();
+              if (rawTiData.values && Array.isArray(rawTiData.values) && rawTiData.values.length > 0) {
+                // assume the first non-empty row contains headers
+                let hdIndex = 0;
+                for (let i = 0; i < Math.min(rawTiData.values.length, 5); i++) {
+                  if (rawTiData.values[i].some((cell: string) => String(cell).toLowerCase().includes('mã khách'))) {
+                    hdIndex = i;
+                    break;
+                  }
+                }
+                const headers: string[] = rawTiData.values[hdIndex].map((h: string) => String(h).toLowerCase().trim());
+                fetchedTiData = rawTiData.values.slice(hdIndex + 1).map((row: any[]) => {
+                  const obj: any = {};
+                  headers.forEach((h, idx) => {
+                    if (h) obj[h] = row[idx] || '';
+                  });
+                  return obj;
+                });
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch TI sheet", e);
+          }
+        }
 
+        setTiCustomers(fetchedTiData);
         setCustomers(parsed);
       } else {
         // Fallback: Try to fetch as Public CSV
         const url1 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Danh%20s%C3%A1ch%20t%E1%BB%95ng`;
         const url2 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Danh%20s%C3%A1ch%20kh%C3%A1ch%20h%C3%A0ng%20%C4%91%E1%BA%BFn%2001/06/2026`;
+        const url3 = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=1131885151`;
 
         try {
-          const [text1, text2] = await Promise.all([
+          const [text1, text2, text3] = await Promise.all([
             fetch(url1).then(r => r.text()),
-            fetch(url2).then(r => r.text())
+            fetch(url2).then(r => r.text()),
+            fetch(url3).then(r => r.text()).catch(() => '')
           ]);
 
           let parsedMain: Customer[] = [];
@@ -159,6 +203,34 @@ export function useGoogleSheets(accessToken: string | null) {
               }
             }
           });
+
+          let fetchedTiData: any[] = [];
+          if (text3) {
+            Papa.parse(text3, {
+              header: false,
+              skipEmptyLines: true,
+              complete: (results) => {
+                const data = results.data as string[][];
+                if (data.length > 0) {
+                  let hdIndex = 0;
+                  for (let i = 0; i < Math.min(data.length, 5); i++) {
+                    if (data[i].some(cell => String(cell).toLowerCase().includes('mã khách'))) {
+                      hdIndex = i;
+                      break;
+                    }
+                  }
+                  const headers = data[hdIndex].map(h => String(h).toLowerCase().trim());
+                  fetchedTiData = data.slice(hdIndex + 1).map(row => {
+                    const obj: any = {};
+                    headers.forEach((h, idx) => {
+                      if (h) obj[h] = row[idx] || '';
+                    });
+                    return obj;
+                  });
+                }
+              }
+            });
+          }
 
           const firstSheetMap = new Map<string, Customer>();
           parsedMain.forEach(c => {
@@ -196,6 +268,7 @@ export function useGoogleSheets(accessToken: string | null) {
             parsedMain = [...enrichedMain, ...removedCustomers];
           }
 
+          setTiCustomers(fetchedTiData);
           setCustomers(parsedMain);
           setLoading(false);
 
@@ -217,6 +290,7 @@ export function useGoogleSheets(accessToken: string | null) {
 
   return {
     customers,
+    tiCustomers,
     loading,
     error,
     fetchCustomers

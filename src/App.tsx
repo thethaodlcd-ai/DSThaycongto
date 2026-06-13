@@ -6,6 +6,7 @@ import { Overview } from './components/Overview';
 import { Details } from './components/Details';
 import { PeriodicList } from './components/PeriodicList';
 import { PricingList } from './components/PricingList';
+import { TIList } from './components/TIList';
 import { LayoutDashboard, List, LogOut, DownloadCloud, Unlock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -15,11 +16,11 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic' | 'pricing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'periodic' | 'pricing' | 'ti'>('overview');
   const [detailsMode, setDetailsMode] = useState<'books' | 'stations' | 'all' | 'overdue' | 'phase1' | 'phase3' | 'types' | 'tiRatios' | 'notesAndSolar' | 'phase1Direct' | 'phase1Indirect' | 'phase3Direct' | 'phase3Indirect' | 'excludeSpecificPrices' | 'periodic2026' | 'replaced2026' | 'changedCustomers' | 'removedCustomers' | 'newCustomers' | 'customerTypes' | 'customersWithPE'>('books');
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const { customers, loading, error, fetchCustomers } = useGoogleSheets(accessToken);
+  const { customers, tiCustomers, loading, error, fetchCustomers } = useGoogleSheets(accessToken);
 
   useEffect(() => {
     // Note: this hook might fail if the dummy firebase config throws error during init Auth.
@@ -176,7 +177,7 @@ export default function App() {
         </div>
 
         {/* Bottom Row / Tabs */}
-        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-full sm:w-auto overflow-x-auto scrollbar-hide shrink-0 max-w-full">
+        <nav className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-lg w-full shrink-0">
           <button
             onClick={() => setActiveTab('overview')}
             className={twMerge(
@@ -221,6 +222,17 @@ export default function App() {
           >
             Danh Sách Thay Thời Gian Cho Biểu Giá
           </button>
+          <button
+            onClick={() => setActiveTab('ti')}
+            className={twMerge(
+              'shrink-0 flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-md text-xs sm:text-sm transition-colors text-center whitespace-nowrap',
+              activeTab === 'ti'
+                ? 'font-bold bg-white text-indigo-600 shadow-sm'
+                : 'font-medium text-slate-600 hover:bg-white/50'
+            )}
+          >
+            Khách hàng có TI
+          </button>
         </nav>
       </header>
 
@@ -259,8 +271,10 @@ export default function App() {
               <Details customers={customers} mode={detailsMode} />
             ) : activeTab === 'periodic' ? (
               <PeriodicList customers={customers} />
-            ) : (
+            ) : activeTab === 'pricing' ? (
               <PricingList customers={customers} />
+            ) : (
+              <TIList customers={customers} tiCustomers={tiCustomers} />
             )}
           </div>
         )}
