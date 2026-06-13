@@ -145,7 +145,13 @@ export function useGoogleSheets(accessToken: string | null) {
                 fetchedTiData = rawTiData.values.slice(hdIndex + 1).map((row: any[]) => {
                   const obj: any = {};
                   headers.forEach((h, idx) => {
-                    if (h) obj[h] = row[idx] || '';
+                    if (h) {
+                      if (obj[h] !== undefined) {
+                        obj[`${h}_${idx}`] = row[idx] || '';
+                      } else {
+                        obj[h] = row[idx] || '';
+                      }
+                    }
                   });
                   return obj;
                 });
@@ -223,7 +229,13 @@ export function useGoogleSheets(accessToken: string | null) {
                   fetchedTiData = data.slice(hdIndex + 1).map(row => {
                     const obj: any = {};
                     headers.forEach((h, idx) => {
-                      if (h) obj[h] = row[idx] || '';
+                      if (h) {
+                        if (obj[h] !== undefined) {
+                          obj[`${h}_${idx}`] = row[idx] || '';
+                        } else {
+                          obj[h] = row[idx] || '';
+                        }
+                      }
                     });
                     return obj;
                   });

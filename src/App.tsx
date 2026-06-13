@@ -150,7 +150,7 @@ export default function App() {
 
   return (
     <div className="h-full bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden">
-      <header className="bg-white border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-8 py-3 shadow-sm flex-shrink-0 z-10 gap-3 sm:gap-4">
+      <header className="bg-white border-b border-slate-200 flex flex-col px-4 sm:px-8 py-3 shadow-sm flex-shrink-0 z-10 gap-3 sm:gap-4">
         {/* Top Row: Brand & User Profile */}
         <div className="flex items-center justify-between w-full gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -177,7 +177,7 @@ export default function App() {
         </div>
 
         {/* Bottom Row / Tabs */}
-        <nav className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-lg w-full shrink-0">
+        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-full overflow-x-auto scrollbar-hide shrink-0">
           <button
             onClick={() => setActiveTab('overview')}
             className={twMerge(

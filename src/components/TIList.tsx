@@ -25,18 +25,29 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
         const cCode = c.customerCode.trim().toUpperCase();
         if (tiMap.has(cCode)) {
           const tiRow = tiMap.get(cCode);
-          // Look for TI device number column
-          const tiDeviceKey = Object.keys(tiRow).find(k => 
-            k.includes('số thiết bị ti') || 
-            k.includes('ti') ||
+          const tiKeys = Object.keys(tiRow).filter(k => 
+            (k.includes('ti') && k.includes('số')) ||
             k.includes('số máy ti') ||
-            k.includes('số thiết bị')
+            k.includes('thiết bị ti')
           );
-          const tiDeviceNum = tiDeviceKey ? tiRow[tiDeviceKey] : 'Không có thông tin';
+          
+          let nums: string[] = [];
+          
+          if (tiKeys.length > 0) {
+            // First pass exactly check for 1, 2, 3 or A, B, C suffixes to order them
+            nums = tiKeys.map(k => String(tiRow[k] || '')).filter(v => v.trim() !== '');
+          }
+
+          // ensure we have at least 3 fields, pad if needed
+          const tiDevices = [
+            nums[0] || '',
+            nums[1] || '',
+            nums[2] || ''
+          ];
           
           results.push({
             customer: c,
-            tiDeviceNum
+            tiDevices
           });
         }
       }
@@ -54,17 +65,19 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
       </div>
 
       <div className="flex-1 overflow-x-auto">
-        <div className="min-w-[1000px] h-full flex flex-col">
+        <div className="min-w-[1200px] h-full flex flex-col">
           {/* Header */}
-          <div className="grid grid-cols-12 gap-4 bg-slate-100 p-4 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase shrink-0 sticky top-0 z-10 shadow-sm">
-            <div className="col-span-1">STT</div>
-            <div className="col-span-2">Mã Khách Hàng</div>
-            <div className="col-span-2">Tên Khách Hàng</div>
-            <div className="col-span-2">Địa Chỉ</div>
-            <div className="col-span-1">Số TB Công Tơ</div>
-            <div className="col-span-1">Số TB TI</div>
-            <div className="col-span-1">Mã Chủng Loại</div>
-            <div className="col-span-1">Hạn KĐ</div>
+          <div className="grid grid-cols-[60px_120px_minmax(150px,1.5fr)_minmax(150px,2fr)_120px_120px_100px_100px_100px_100px] gap-4 bg-slate-100 p-4 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase shrink-0 sticky top-0 z-10 shadow-sm">
+            <div>STT</div>
+            <div>Mã Khách Hàng</div>
+            <div>Tên Khách Hàng</div>
+            <div>Địa Chỉ</div>
+            <div>Số TB C.Tơ</div>
+            <div>Mã Chủng Loại</div>
+            <div>Hạn KĐ</div>
+            <div>Số TB TI 1</div>
+            <div>Số TB TI 2</div>
+            <div>Số TB TI 3</div>
           </div>
           
           {/* List */}
@@ -77,39 +90,35 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
             ) : (
               <div className="divide-y divide-slate-100">
                 {mergedData.map((item, index) => {
-                  const { customer, tiDeviceNum } = item;
+                  const { customer, tiDevices } = item;
                   
                   return (
-                    <div key={customer.customerCode + index} className="grid grid-cols-12 gap-4 p-4 text-sm items-center hover:bg-white transition-colors bg-white/50">
-                      <div className="col-span-1 text-slate-400 font-medium">#{index + 1}</div>
+                    <div key={customer.customerCode + index} className="grid grid-cols-[60px_120px_minmax(150px,1.5fr)_minmax(150px,2fr)_120px_120px_100px_100px_100px_100px] gap-4 p-4 text-sm items-center hover:bg-white transition-colors bg-white/50">
+                      <div className="text-slate-400 font-medium">#{index + 1}</div>
                       
-                      <div className="col-span-2">
+                      <div>
                         <span className="font-mono font-bold text-indigo-600">{customer.customerCode}</span>
                       </div>
                       
-                      <div className="col-span-2 font-medium text-slate-900 truncate" title={customer.customerName}>
+                      <div className="font-medium text-slate-900 truncate" title={customer.customerName}>
                         {customer.customerName || '-'}
                       </div>
                       
-                      <div className="col-span-2 text-slate-500 truncate text-xs" title={customer.address}>
+                      <div className="text-slate-500 truncate text-xs" title={customer.address}>
                         {customer.address || '-'}
                       </div>
                       
-                      <div className="col-span-1 text-slate-700 font-medium">
+                      <div className="text-slate-700 font-medium">
                         {customer.deviceNumber || '-'}
                       </div>
 
-                      <div className="col-span-1 text-amber-600 font-bold">
-                        {tiDeviceNum || '-'}
-                      </div>
-                      
-                      <div className="col-span-1 font-mono text-slate-500 text-xs truncate">
+                      <div className="font-mono text-slate-500 text-xs truncate">
                         {customer.typeCode || '-'}
                       </div>
                       
-                      <div className="col-span-1">
+                      <div>
                         <span className={twMerge(
-                          "px-2 py-1 rounded-md text-xs font-bold whitespace-nowrap",
+                          "px-2 py-1 rounded-md text-[10px] sm:text-xs font-bold whitespace-nowrap",
                           isExpiringSoonOrOverdue(customer.inspectionExpiry)
                             ? "bg-red-100 text-red-700"
                             : isTargetYear(customer.inspectionExpiry, 2026)
@@ -118,6 +127,18 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
                         )}>
                           {customer.inspectionExpiry || '-'}
                         </span>
+                      </div>
+
+                      <div className="text-amber-600 font-bold font-mono text-xs truncate" title={tiDevices[0]}>
+                        {tiDevices[0] || '-'}
+                      </div>
+
+                      <div className="text-amber-600 font-bold font-mono text-xs truncate" title={tiDevices[1]}>
+                        {tiDevices[1] || '-'}
+                      </div>
+
+                      <div className="text-amber-600 font-bold font-mono text-xs truncate" title={tiDevices[2]}>
+                        {tiDevices[2] || '-'}
                       </div>
                     </div>
                   );
