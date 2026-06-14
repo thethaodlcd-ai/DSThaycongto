@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Customer } from '../types/customer';
-import { Users, FileText, Settings2, Zap, AlertTriangle, Component, DownloadCloud } from 'lucide-react';
+import { Users, FileText, Settings2, Zap, AlertTriangle, Component, DownloadCloud, CalendarDays } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
-import { isExpiringSoonOrOverdue, isTargetYear } from '../utils/dateHelpers';
+import { isExpiringSoonOrOverdue, isExpiringInCurrentYear, isTargetYear } from '../utils/dateHelpers';
 import Papa from 'papaparse';
 
 interface TIListProps {
@@ -10,7 +10,11 @@ interface TIListProps {
   tiCustomers: any[];
 }
 
+type ViewMode = 'all' | 'multiple' | 'expiring' | 'expiringYear';
+
 export function TIList({ customers, tiCustomers }: TIListProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
+
   const mergedData = useMemo(() => {
     const tiMap = new Map<string, any[]>();
     tiCustomers.forEach(row => {
@@ -85,8 +89,17 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
     return results;
   }, [customers, tiCustomers]);
 
+  const filteredData = useMemo(() => {
+    return mergedData.filter(item => {
+      if (viewMode === 'multiple') return !!item.tiDevices[1];
+      if (viewMode === 'expiring') return item.tiExpiries.some(e => e && isExpiringSoonOrOverdue(e));
+      if (viewMode === 'expiringYear') return item.tiExpiries.some(e => e && isExpiringInCurrentYear(e));
+      return true;
+    });
+  }, [mergedData, viewMode]);
+
   const handleExport = () => {
-    const exportData = mergedData.map((item, index) => ({
+    const exportData = filteredData.map((item, index) => ({
       'STT': index + 1,
       'Mã Khách Hàng': item.customer.customerCode || '',
       'Tên Khách Hàng': item.customer.customerName || '',
@@ -112,7 +125,7 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
     // Format current date for filename
     const dateStr = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Danh-sach-khach-hang-co-TI_${dateStr}.csv`);
+    link.setAttribute('download', `Danh-sach-khach-hang-co-TI_${viewMode}_${dateStr}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -124,37 +137,56 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900">Danh Sách Khách Hàng Có TI</h2>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Đã tìm thấy {mergedData.length} khách hàng có TI khớp mã</p>
+          <p className="text-sm text-slate-500 mt-1 font-medium">Đã tìm thấy {filteredData.length} khách hàng có TI khớp mã</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             icon={Users}
             title="KHÁCH HÀNG CÓ TI"
             value={mergedData.length}
+            isActive={viewMode === 'all'}
+            onClick={() => setViewMode('all')}
             highlight={false}
           />
           <StatCard
             icon={Zap}
             title="CÓ NHIỀU HƠN 1 TI"
             value={mergedData.filter(d => d.tiDevices[1]).length}
+            isActive={viewMode === 'multiple'}
+            onClick={() => setViewMode('multiple')}
+            highlight={false}
+          />
+          <StatCard
+            icon={CalendarDays}
+            title="TI ĐẾN HẠN KĐ"
+            value={mergedData.filter(d => d.tiExpiries.some(e => e && isExpiringInCurrentYear(e))).length}
+            isActive={viewMode === 'expiringYear'}
+            onClick={() => setViewMode('expiringYear')}
             highlight={false}
           />
           <StatCard
             icon={AlertTriangle}
             title="TI QUÁ HẠN KIỂM ĐỊNH"
-            value={mergedData.filter(d => d.tiExpiries.some(e => isExpiringSoonOrOverdue(e))).length}
-            highlight={true}
+            value={mergedData.filter(d => d.tiExpiries.some(e => e && isExpiringSoonOrOverdue(e))).length}
+            isActive={viewMode === 'expiring'}
+            onClick={() => setViewMode('expiring')}
+            highlight={mergedData.filter(d => d.tiExpiries.some(e => e && isExpiringSoonOrOverdue(e))).length > 0}
           />
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px] flex-1">
           <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
-            <h3 className="text-lg font-bold text-slate-800">Chi tiết đối chiếu TI</h3>
+            <h3 className="text-lg font-bold text-slate-800">
+              {viewMode === 'all' && 'Chi tiết đối chiếu TI'}
+              {viewMode === 'multiple' && 'Khách hàng có nhiều hơn 1 TI'}
+              {viewMode === 'expiringYear' && 'TI đến hạn kiểm định (trong năm nay)'}
+              {viewMode === 'expiring' && 'TI quá hạn kiểm định (Gần hoặc đã quá hạn)'}
+            </h3>
             <button
               onClick={handleExport}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={mergedData.length === 0}
+              disabled={filteredData.length === 0}
             >
               <DownloadCloud className="w-4 h-4" />
               <span>Xuất File Excel (.csv)</span>
@@ -183,14 +215,14 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
               
               {/* List */}
               <div className="divide-y divide-slate-100 overflow-y-auto w-full flex-1">
-                {mergedData.length === 0 ? (
+                {filteredData.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
                     <Component className="w-12 h-12 mb-4 opacity-50" />
                     <p>Không có dữ liệu đối chiếu hoặc chưa tải được Danh Sách TI.</p>
                   </div>
                 ) : (
                   <div>
-                    {mergedData.map((item, index) => {
+                    {filteredData.map((item, index) => {
                       const { customer, tiDevices, tiExpiries, tySoTi } = item;
                       
                       return (
@@ -237,21 +269,21 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
                           <div className="text-amber-600 font-bold font-mono text-[10px] sm:text-xs xl:text-sm truncate" title={tiDevices[0]}>
                             {tiDevices[0] || '-'}
                           </div>
-                          <div className="text-slate-600 font-bold font-mono text-[10px] sm:text-xs">
+                          <div className={twMerge("font-bold font-mono text-[10px] sm:text-xs", tiExpiries[0] && isExpiringSoonOrOverdue(tiExpiries[0]) ? "text-red-600 bg-red-50 px-1.5 py-0.5 rounded w-fit" : tiExpiries[0] && isExpiringInCurrentYear(tiExpiries[0]) ? "text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded w-fit" : "text-slate-600")}>
                             {tiExpiries[0] || '-'}
                           </div>
 
                           <div className="text-amber-600 font-bold font-mono text-[10px] sm:text-xs xl:text-sm truncate" title={tiDevices[1]}>
                             {tiDevices[1] || '-'}
                           </div>
-                          <div className="text-slate-600 font-bold font-mono text-[10px] sm:text-xs">
+                          <div className={twMerge("font-bold font-mono text-[10px] sm:text-xs", tiExpiries[1] && isExpiringSoonOrOverdue(tiExpiries[1]) ? "text-red-600 bg-red-50 px-1.5 py-0.5 rounded w-fit" : tiExpiries[1] && isExpiringInCurrentYear(tiExpiries[1]) ? "text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded w-fit" : "text-slate-600")}>
                             {tiExpiries[1] || '-'}
                           </div>
 
                           <div className="text-amber-600 font-bold font-mono text-[10px] sm:text-xs xl:text-sm truncate" title={tiDevices[2]}>
                             {tiDevices[2] || '-'}
                           </div>
-                          <div className="text-slate-600 font-bold font-mono text-[10px] sm:text-xs">
+                          <div className={twMerge("font-bold font-mono text-[10px] sm:text-xs", tiExpiries[2] && isExpiringSoonOrOverdue(tiExpiries[2]) ? "text-red-600 bg-red-50 px-1.5 py-0.5 rounded w-fit" : tiExpiries[2] && isExpiringInCurrentYear(tiExpiries[2]) ? "text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded w-fit" : "text-slate-600")}>
                             {tiExpiries[2] || '-'}
                           </div>
                         </div>
@@ -268,19 +300,35 @@ export function TIList({ customers, tiCustomers }: TIListProps) {
   );
 }
 
-function StatCard({ icon: Icon, title, value, onClick, highlight = false, subtitle }: { icon: any, title: string, value: number | string, onClick?: () => void, highlight?: boolean, subtitle?: string }) {
+function StatCard({ icon: Icon, title, value, onClick, highlight = false, isActive = false, subtitle }: { icon: any, title: string, value: number | string, onClick?: () => void, highlight?: boolean, isActive?: boolean, subtitle?: string }) {
   return (
     <div 
       onClick={onClick}
-      className={`bg-white rounded-2xl border ${highlight ? 'border-red-200' : 'border-slate-100'} shadow-sm overflow-hidden flex items-center p-6 transition-all group`}
+      className={twMerge(
+        "bg-white rounded-2xl border shadow-sm overflow-hidden flex items-center p-6 transition-all group cursor-pointer hover:shadow-md",
+        isActive ? 'ring-2 ring-indigo-500 border-transparent shadow-md' : 'border-slate-100',
+        highlight && isActive ? 'ring-red-500' : ''
+      )}
     >
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${highlight ? 'bg-red-50 border border-red-100 text-red-500' : 'bg-slate-50 border border-slate-100 text-indigo-500'}`}>
+      <div className={twMerge(
+        "w-12 h-12 rounded-xl flex items-center justify-center mr-4",
+        highlight ? 'bg-red-50 border border-red-100 text-red-500' : 'bg-slate-50 border border-slate-100 text-indigo-500',
+        isActive && highlight ? 'bg-red-100' : '',
+        isActive && !highlight ? 'bg-indigo-100 text-indigo-600' : ''
+      )}>
         <Icon className="w-6 h-6" />
       </div>
       <div>
-        <p className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-red-400' : 'text-slate-400'}`}>{title}</p>
-        <h3 className="text-2xl font-black text-slate-900 mt-0.5">{value}</h3>
-        {subtitle && <p className={`text-xs font-medium mt-1 ${highlight ? 'text-red-500' : 'text-indigo-600'}`}>{subtitle}</p>}
+        <p className={twMerge(
+          "text-[10px] font-bold uppercase tracking-widest",
+          highlight ? 'text-red-400' : 'text-slate-400',
+          isActive && !highlight ? 'text-indigo-500' : ''
+        )}>{title}</p>
+        <h3 className="text-3xl font-black text-slate-900 mt-0.5">{value}</h3>
+        {subtitle && <p className={twMerge(
+          "text-xs font-medium mt-1",
+          highlight ? 'text-red-500' : 'text-indigo-600'
+        )}>{subtitle}</p>}
       </div>
     </div>
   );

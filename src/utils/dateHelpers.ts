@@ -35,6 +35,13 @@ export function isTargetYear(dateString: string, targetYear: number): boolean {
   return date.getFullYear() === targetYear;
 }
 
+export function isExpiringInCurrentYear(dateString: string): boolean {
+  if (!dateString) return false;
+  const date = parseVietnameseDate(dateString);
+  if (!date) return false;
+  return date.getFullYear() === new Date().getFullYear();
+}
+
 export function isExpiringSoonOrOverdue(dateString: string): boolean {
   if (!dateString) return false;
   const date = parseVietnameseDate(dateString);

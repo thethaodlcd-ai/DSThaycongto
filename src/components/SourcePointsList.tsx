@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Network, DownloadCloud, Component } from 'lucide-react';
+import { Network, DownloadCloud, Component, AlertTriangle, BatteryWarning, FileWarning } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import Papa from 'papaparse';
 import { isExpiringSoonOrOverdue, isTargetYear } from '../utils/dateHelpers';
@@ -9,8 +9,10 @@ interface SourcePointsListProps {
   tiSourcePoints?: any[];
 }
 
+type ViewMode = 'all' | 'ctExpiring' | 'tiExpiring' | 'bothExpiring';
+
 export function SourcePointsList({ sourcePoints, tiSourcePoints = [] }: SourcePointsListProps) {
-  console.log("SourcePointsList renders - sourcePoints:", sourcePoints?.length, "tiSourcePoints:", tiSourcePoints?.length);
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
 
   const mergedData = useMemo(() => {
     return sourcePoints.map(row => {
@@ -58,8 +60,33 @@ export function SourcePointsList({ sourcePoints, tiSourcePoints = [] }: SourcePo
     }).filter(d => d.maDdo || d.soTbi || d.dchiDdo);
   }, [sourcePoints, tiSourcePoints]);
 
+  const filteredData = useMemo(() => {
+    return mergedData.filter(item => {
+      const isCtExpiring = isExpiringSoonOrOverdue(item.hanKdinh);
+      const isTiExpiring = item.tiExpiries.some(exp => exp && isExpiringSoonOrOverdue(exp));
+
+      if (viewMode === 'all') return true;
+      if (viewMode === 'ctExpiring') return isCtExpiring;
+      if (viewMode === 'tiExpiring') return isTiExpiring;
+      if (viewMode === 'bothExpiring') return isCtExpiring && isTiExpiring;
+      return true;
+    });
+  }, [mergedData, viewMode]);
+
+  const { ctExpiringCount, tiExpiringCount, bothExpiringCount } = useMemo(() => {
+    let ct = 0, ti = 0, both = 0;
+    mergedData.forEach(item => {
+      const isCt = isExpiringSoonOrOverdue(item.hanKdinh);
+      const isTi = item.tiExpiries.some(exp => exp && isExpiringSoonOrOverdue(exp));
+      if (isCt) ct++;
+      if (isTi) ti++;
+      if (isCt && isTi) both++;
+    });
+    return { ctExpiringCount: ct, tiExpiringCount: ti, bothExpiringCount: both };
+  }, [mergedData]);
+
   const handleExport = () => {
-    const exportData = mergedData.map((item, index) => ({
+    const exportData = filteredData.map((item, index) => ({
       'STT': index + 1,
       'DCHI_DDO': item.dchiDdo,
       'MA_TRAM': item.maTram,
@@ -83,7 +110,7 @@ export function SourcePointsList({ sourcePoints, tiSourcePoints = [] }: SourcePo
     
     const dateStr = new Date().toLocaleDateString('vi-VN').replace(/\//g, '-');
     link.setAttribute('href', url);
-    link.setAttribute('download', `Diem-do-dau-nguon_${dateStr}.csv`);
+    link.setAttribute('download', `Diem-do-dau-nguon_${viewMode}_${dateStr}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -95,27 +122,58 @@ export function SourcePointsList({ sourcePoints, tiSourcePoints = [] }: SourcePo
       <div className="max-w-7xl mx-auto w-full space-y-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900">Điểm Đo Đầu Nguồn</h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">Đã tìm thấy {mergedData.length} điểm đo</p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Đã tìm thấy {filteredData.length} điểm đo</p>
         </div>
 
         <div className="bg-slate-50 border-b border-slate-200 px-6 py-6 shrink-0 rounded-2xl border">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               icon={Network}
-              title="TỔNG SỐ ĐIỂM ĐO"
+              title="TỔNG SỐ"
               value={mergedData.length}
+              isActive={viewMode === 'all'}
+              onClick={() => setViewMode('all')}
               highlight={false}
+            />
+            <StatCard
+              icon={AlertTriangle}
+              title="CT ĐẾN HKĐ"
+              value={ctExpiringCount}
+              isActive={viewMode === 'ctExpiring'}
+              onClick={() => setViewMode('ctExpiring')}
+              highlight={ctExpiringCount > 0}
+            />
+            <StatCard
+              icon={BatteryWarning}
+              title="TI ĐẾN HKĐ"
+              value={tiExpiringCount}
+              isActive={viewMode === 'tiExpiring'}
+              onClick={() => setViewMode('tiExpiring')}
+              highlight={tiExpiringCount > 0}
+            />
+            <StatCard
+              icon={FileWarning}
+              title="CT, TI ĐẾN HKĐ"
+              value={bothExpiringCount}
+              isActive={viewMode === 'bothExpiring'}
+              onClick={() => setViewMode('bothExpiring')}
+              highlight={bothExpiringCount > 0}
             />
           </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
           <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
-            <h3 className="text-lg font-bold text-slate-800">Danh Sách Điểm Đo</h3>
+            <h3 className="text-lg font-bold text-slate-800">
+              {viewMode === 'all' && 'Danh Sách Điểm Đo'}
+              {viewMode === 'ctExpiring' && 'Danh Sách CT Đến HKĐ'}
+              {viewMode === 'tiExpiring' && 'Danh Sách TI Đến HKĐ'}
+              {viewMode === 'bothExpiring' && 'Danh Sách CT, TI Đến HKĐ'}
+            </h3>
             <button
               onClick={handleExport}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={mergedData.length === 0}
+              disabled={filteredData.length === 0}
             >
               <DownloadCloud className="w-4 h-4" />
               <span>Xuất File Excel (.csv)</span>
@@ -144,14 +202,14 @@ export function SourcePointsList({ sourcePoints, tiSourcePoints = [] }: SourcePo
               
               {/* List */}
               <div className="divide-y divide-slate-100 overflow-y-auto w-full flex-1">
-                {mergedData.length === 0 ? (
+                {filteredData.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-12 text-center text-slate-400">
                     <Component className="w-12 h-12 mb-4 opacity-50" />
-                    <p>Không có dữ liệu điểm đo.</p>
+                    <p>Không có dữ liệu.</p>
                   </div>
                 ) : (
                   <div>
-                    {mergedData.map((item, index) => {
+                    {filteredData.map((item, index) => {
                       return (
                         <div key={index} className="grid grid-cols-[50px_minmax(180px,2fr)_120px_140px_120px_100px_90px_100px_90px_100px_90px_100px_90px_100px] gap-2 p-4 text-sm items-center hover:bg-slate-50 transition-colors">
                           <div className="text-slate-400 font-medium text-xs">#{index + 1}</div>
@@ -251,19 +309,35 @@ export function SourcePointsList({ sourcePoints, tiSourcePoints = [] }: SourcePo
   );
 }
 
-function StatCard({ icon: Icon, title, value, onClick, highlight = false, subtitle }: { icon: any, title: string, value: number | string, onClick?: () => void, highlight?: boolean, subtitle?: string }) {
+function StatCard({ icon: Icon, title, value, onClick, highlight = false, isActive = false, subtitle }: { icon: any, title: string, value: number | string, onClick?: () => void, highlight?: boolean, isActive?: boolean, subtitle?: string }) {
   return (
     <div 
       onClick={onClick}
-      className={`bg-white rounded-2xl border ${highlight ? 'border-red-200' : 'border-slate-100'} shadow-sm overflow-hidden flex items-center p-6 transition-all group`}
+      className={twMerge(
+        "bg-white rounded-2xl border shadow-sm overflow-hidden flex items-center p-6 transition-all group cursor-pointer hover:shadow-md",
+        isActive ? 'ring-2 ring-indigo-500 border-transparent shadow-md' : 'border-slate-100',
+        highlight && isActive ? 'ring-red-500' : ''
+      )}
     >
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${highlight ? 'bg-red-50 border border-red-100 text-red-500' : 'bg-slate-50 border border-slate-100 text-indigo-500'}`}>
+      <div className={twMerge(
+        "w-12 h-12 rounded-xl flex items-center justify-center mr-4",
+        highlight ? 'bg-red-50 border border-red-100 text-red-500' : 'bg-slate-50 border border-slate-100 text-indigo-500',
+        isActive && highlight ? 'bg-red-100' : '',
+        isActive && !highlight ? 'bg-indigo-100 text-indigo-600' : ''
+      )}>
         <Icon className="w-6 h-6" />
       </div>
       <div>
-        <p className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? 'text-red-400' : 'text-slate-400'}`}>{title}</p>
-        <h3 className="text-2xl font-black text-slate-900 mt-0.5">{value}</h3>
-        {subtitle && <p className={`text-xs font-medium mt-1 ${highlight ? 'text-red-500' : 'text-indigo-600'}`}>{subtitle}</p>}
+        <p className={twMerge(
+          "text-[10px] font-bold uppercase tracking-widest",
+          highlight ? 'text-red-400' : 'text-slate-400',
+          isActive && !highlight ? 'text-indigo-500' : ''
+        )}>{title}</p>
+        <h3 className="text-3xl font-black text-slate-900 mt-0.5">{value}</h3>
+        {subtitle && <p className={twMerge(
+          "text-xs font-medium mt-1",
+          highlight ? 'text-red-500' : 'text-indigo-600'
+        )}>{subtitle}</p>}
       </div>
     </div>
   );
